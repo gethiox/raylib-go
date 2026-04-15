@@ -12,17 +12,27 @@ var (
 	// raylibDll is the pointer to the shared library
 	raylibDll ffi.Lib
 
-	initWindow          ffi.Fun
-	closeWindow         ffi.Fun
-	setTraceLogCallback ffi.Fun
-	windowShouldClose   ffi.Fun
-	isWindowReady       ffi.Fun
-	isWindowFullscreen  ffi.Fun
-	isWindowHidden      ffi.Fun
-	isWindowMinimized   ffi.Fun
-	isWindowMaximized   ffi.Fun
-	isWindowFocused     ffi.Fun
-	isWindowResized     ffi.Fun
+	initWindow               ffi.Fun
+	closeWindow              ffi.Fun
+	setTraceLogCallback      ffi.Fun
+	windowShouldClose        ffi.Fun
+	isWindowReady            ffi.Fun
+	isWindowFullscreen       ffi.Fun
+	isWindowHidden           ffi.Fun
+	isWindowMinimized        ffi.Fun
+	isWindowMaximized        ffi.Fun
+	isWindowFocused          ffi.Fun
+	isWindowResized          ffi.Fun
+	isWindowState            ffi.Fun
+	setWindowState           ffi.Fun
+	clearWindowState         ffi.Fun
+	toggleFullscreen         ffi.Fun
+	toggleBorderlessWindowed ffi.Fun
+	maximizeWindow           ffi.Fun
+	minimizeWindow           ffi.Fun
+	restoreWindow            ffi.Fun
+	setWindowIcon            ffi.Fun
+	setWindowIcons           ffi.Fun
 )
 
 func init() {
@@ -39,6 +49,16 @@ func init() {
 	isWindowMaximized = must(raylibDll.Prep("IsWindowMaximized", &ffi.TypeUint8))
 	isWindowFocused = must(raylibDll.Prep("IsWindowFocused", &ffi.TypeUint8))
 	isWindowResized = must(raylibDll.Prep("IsWindowResized", &ffi.TypeUint8))
+	isWindowState = must(raylibDll.Prep("IsWindowState", &ffi.TypeUint8, &ffi.TypeUint32))
+	setWindowState = must(raylibDll.Prep("SetWindowState", &ffi.TypeVoid, &ffi.TypeUint32))
+	clearWindowState = must(raylibDll.Prep("ClearWindowState", &ffi.TypeVoid, &ffi.TypeUint32))
+	toggleFullscreen = must(raylibDll.Prep("ToggleFullscreen", &ffi.TypeVoid))
+	toggleBorderlessWindowed = must(raylibDll.Prep("ToggleBorderlessWindowed", &ffi.TypeVoid))
+	maximizeWindow = must(raylibDll.Prep("MaximizeWindow", &ffi.TypeVoid))
+	minimizeWindow = must(raylibDll.Prep("MinimizeWindow", &ffi.TypeVoid))
+	restoreWindow = must(raylibDll.Prep("RestoreWindow", &ffi.TypeVoid))
+	setWindowIcon = must(raylibDll.Prep("SetWindowIcon", &ffi.TypeVoid, &typeImage))
+	setWindowIcons = must(raylibDll.Prep("SetWindowIcons", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32))
 }
 
 // InitWindow - Initialize window and OpenGL context
@@ -106,6 +126,59 @@ func IsWindowResized() bool {
 	var ret ffi.Arg
 	isWindowResized.Call(&ret)
 	return ret.Bool()
+}
+
+// IsWindowState - Check if one specific window flag is enabled
+func IsWindowState(flag uint32) bool {
+	var ret ffi.Arg
+	isWindowState.Call(&ret, &flag)
+	return ret.Bool()
+}
+
+// SetWindowState - Set window configuration state using flags (only PLATFORM_DESKTOP)
+func SetWindowState(flags uint32) {
+	setWindowState.Call(nil, &flags)
+}
+
+// ClearWindowState - Clear window configuration state flags
+func ClearWindowState(flags uint32) {
+	clearWindowState.Call(nil, &flags)
+}
+
+// ToggleFullscreen - Toggle window state: fullscreen/windowed (only PLATFORM_DESKTOP)
+func ToggleFullscreen() {
+	toggleFullscreen.Call(nil)
+}
+
+// ToggleBorderlessWindowed - Toggle window state: borderless windowed (only PLATFORM_DESKTOP)
+func ToggleBorderlessWindowed() {
+	toggleBorderlessWindowed.Call(nil)
+}
+
+// MaximizeWindow - Set window state: maximized, if resizable (only PLATFORM_DESKTOP)
+func MaximizeWindow() {
+	maximizeWindow.Call(nil)
+}
+
+// MinimizeWindow - Set window state: minimized, if resizable (only PLATFORM_DESKTOP)
+func MinimizeWindow() {
+	minimizeWindow.Call(nil)
+}
+
+// RestoreWindow - Set window state: not minimized/maximized (only PLATFORM_DESKTOP)
+func RestoreWindow() {
+	restoreWindow.Call(nil)
+}
+
+// SetWindowIcon - Set icon for window (single image, RGBA 32bit, only PLATFORM_DESKTOP)
+func SetWindowIcon(image Image) {
+	setWindowIcon.Call(nil, &image)
+}
+
+// SetWindowIcons - Set icon for window (multiple images, RGBA 32bit, only PLATFORM_DESKTOP)
+func SetWindowIcons(images []Image, count int32) {
+	imagesPtr := &images[0]
+	setWindowIcons.Call(nil, &imagesPtr, &count)
 }
 
 // SetTraceLogCallback - Set custom trace log
