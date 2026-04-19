@@ -4,6 +4,7 @@
 package rl
 
 import (
+	"fmt"
 	"image/color"
 	"unsafe"
 
@@ -19,7 +20,6 @@ var (
 
 	initWindow               = dll.MustPrep("InitWindow", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer)
 	closeWindow              = dll.MustPrep("CloseWindow", &ffi.TypeVoid)
-	setTraceLogCallback      = dll.MustPrep("SetTraceLogCallback", &ffi.TypeVoid, &ffi.TypePointer)
 	windowShouldClose        = dll.MustPrep("WindowShouldClose", &ffi.TypeUint8)
 	isWindowReady            = dll.MustPrep("IsWindowReady", &ffi.TypeUint8)
 	isWindowFullscreen       = dll.MustPrep("IsWindowFullscreen", &ffi.TypeUint8)
@@ -138,12 +138,30 @@ var (
 	swapScreenBuffer = dll.MustPrep("SwapScreenBuffer", &ffi.TypeVoid)
 	pollInputEvents  = dll.MustPrep("PollInputEvents", &ffi.TypeVoid)
 	waitTime         = dll.MustPrep("WaitTime", &ffi.TypeVoid, &ffi.TypeDouble)
+
+	// Misc. functions
+
+	takeScreenshot = dll.MustPrep("TakeScreenshot", &ffi.TypeVoid, &ffi.TypePointer)
+	setConfigFlags = dll.MustPrep("SetConfigFlags", &ffi.TypeVoid, &ffi.TypeUint32)
+	openURL        = dll.MustPrep("OpenURL", &ffi.TypeVoid, &ffi.TypePointer)
+
+	// Logging system
+
+	setTraceLogLevel    = dll.MustPrep("SetTraceLogLevel", &ffi.TypeVoid, &ffi.TypeSint32)
+	traceLog            = dll.MustPrepVar("TraceLog", 2, &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypePointer)
+	setTraceLogCallback = dll.MustPrep("SetTraceLogCallback", &ffi.TypeVoid, &ffi.TypePointer)
+
+	// File system management functions
+
+	isFileDropped      = dll.MustPrep("IsFileDropped", &ffi.TypeUint8)
+	loadDroppedFiles   = dll.MustPrep("LoadDroppedFiles", &typeFilePathList)
+	unloadDroppedFiles = dll.MustPrep("UnloadDroppedFiles", &ffi.TypeVoid, &typeFilePathList)
 )
 
 // InitWindow - Initialize window and OpenGL context
 func InitWindow(width int32, height int32, title string) {
-	cTitle := convert.ToBytePtr(title)
-	initWindow.Call(nil, &width, &height, &cTitle)
+	titlePtr := convert.ToBytePtr(title)
+	initWindow.Call(nil, &width, &height, &titlePtr)
 }
 
 // CloseWindow - Close window and unload OpenGL context
@@ -262,8 +280,8 @@ func SetWindowIcons(images []Image, count int32) {
 
 // SetWindowTitle - Set title for window (only PLATFORM_DESKTOP and PLATFORM_WEB)
 func SetWindowTitle(title string) {
-	cTitle := convert.ToBytePtr(title)
-	setWindowTitle.Call(nil, &cTitle)
+	titlePtr := convert.ToBytePtr(title)
+	setWindowTitle.Call(nil, &titlePtr)
 }
 
 // SetWindowPosition - Set window position on screen (only PLATFORM_DESKTOP)
@@ -427,8 +445,8 @@ func GetMonitorName(monitor int) string {
 
 // SetClipboardText - Set clipboard text content
 func SetClipboardText(text string) {
-	cText := convert.ToBytePtr(text)
-	setClipboardText.Call(nil, &cText)
+	textPtr := convert.ToBytePtr(text)
+	setClipboardText.Call(nil, &textPtr)
 }
 
 // GetClipboardText - Get clipboard text content
@@ -740,9 +758,9 @@ func GetTime() float64 {
 
 // GetFPS - Get current FPS
 func GetFPS() int32 {
-	var ret int32
+	var ret ffi.Arg
 	getFPS.Call(&ret)
-	return ret
+	return int32(ret)
 }
 
 // Custom frame control functions
@@ -767,11 +785,70 @@ func WaitTime(seconds float64) {
 	waitTime.Call(nil, &seconds)
 }
 
+// TakeScreenshot - Takes a screenshot of current screen (filename extension defines format)
+func TakeScreenshot(fileName string) {
+	fileNamePtr := convert.ToBytePtr(fileName)
+	takeScreenshot.Call(nil, &fileNamePtr)
+}
+
+// SetConfigFlags - Setup init configuration flags (view FLAGS)
+func SetConfigFlags(flags uint32) {
+	setConfigFlags.Call(nil, &flags)
+}
+
+// OpenURL - Open URL with default system browser (if available)
+func OpenURL(url string) {
+	urlPtr := convert.ToBytePtr(url)
+	openURL.Call(nil, &urlPtr)
+}
+
+// TraceLog - Show trace log messages (LOG_DEBUG, LOG_INFO, LOG_WARNING, LOG_ERROR...)
+func TraceLog(logLevel TraceLogLevel, text string, args ...any) {
+	level := int32(logLevel)
+	textPtr := convert.ToBytePtr(fmt.Sprintf(text, args...))
+	traceLog.Call(nil, &level, &textPtr)
+}
+
+// SetTraceLogLevel - Set the current threshold (minimum) log level
+func SetTraceLogLevel(logLevel TraceLogLevel) {
+	level := int32(logLevel)
+	setTraceLogLevel.Call(nil, &level)
+}
+
 // SetTraceLogCallback - Set custom trace log
 func SetTraceLogCallback(fn TraceLogCallbackFun) {
 	cb := traceLogCallbackWrapper(fn)
 	setTraceLogCallback.Call(nil, &cb)
 }
+
+// IsFileDropped - Check if a file has been dropped into window
+func IsFileDropped() bool {
+	var ret ffi.Arg
+	isFileDropped.Call(&ret)
+	return ret.Bool()
+}
+
+// LoadDroppedFiles - Load dropped filepaths
+func LoadDroppedFiles() []string {
+	var filePathList = struct {
+		count uint32
+		paths **byte
+	}{}
+	loadDroppedFiles.Call(&filePathList)
+	defer unloadDroppedFiles.Call(nil, &filePathList)
+
+	paths := unsafe.Slice(filePathList.paths, filePathList.count)
+	result := make([]string, filePathList.count)
+
+	for i := range paths {
+		result[i] = convert.ToString(paths[i])
+	}
+
+	return result
+}
+
+// UnloadDroppedFiles - Unload dropped filepaths
+func UnloadDroppedFiles() {}
 
 // GetMouseDelta - Get mouse delta between frames
 func GetMouseDelta() Vector2 {

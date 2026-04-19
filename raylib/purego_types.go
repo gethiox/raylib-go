@@ -37,3 +37,4 @@ var typeVrDeviceInfo = ffi.NewType(
 	&ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat,
 )
 var typeRay = ffi.NewType(&typeVector3, &typeVector3)
+var typeFilePathList = ffi.NewType(&ffi.TypeUint32, &ffi.TypePointer)
