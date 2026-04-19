@@ -156,6 +156,43 @@ var (
 	isFileDropped      = dll.MustPrep("IsFileDropped", &ffi.TypeUint8)
 	loadDroppedFiles   = dll.MustPrep("LoadDroppedFiles", &typeFilePathList)
 	unloadDroppedFiles = dll.MustPrep("UnloadDroppedFiles", &ffi.TypeVoid, &typeFilePathList)
+
+	// Automation events functionality
+
+	loadAutomationEventList       = dll.MustPrep("LoadAutomationEventList", &typeAutomationEventList, &ffi.TypePointer)
+	unloadAutomationEventList     = dll.MustPrep("UnloadAutomationEventList", &ffi.TypeVoid, &typeAutomationEventList)
+	exportAutomationEventList     = dll.MustPrep("ExportAutomationEventList", &ffi.TypeUint8, &typeAutomationEventList, &ffi.TypePointer)
+	setAutomationEventList        = dll.MustPrep("SetAutomationEventList", &ffi.TypeVoid, &ffi.TypePointer)
+	setAutomationEventBaseFrame   = dll.MustPrep("SetAutomationEventBaseFrame", &ffi.TypeVoid, &ffi.TypeSint32)
+	startAutomationEventRecording = dll.MustPrep("StartAutomationEventRecording", &ffi.TypeVoid)
+	stopAutomationEventRecording  = dll.MustPrep("StopAutomationEventRecording", &ffi.TypeVoid)
+	playAutomationEvent           = dll.MustPrep("PlayAutomationEvent", &ffi.TypeVoid, &typeAutomationEvent)
+
+	// Input-related functions: keyboard
+
+	isKeyPressed       = dll.MustPrep("IsKeyPressed", &ffi.TypeUint8, &ffi.TypeSint32)
+	isKeyPressedRepeat = dll.MustPrep("IsKeyPressedRepeat", &ffi.TypeUint8, &ffi.TypeSint32)
+	isKeyDown          = dll.MustPrep("IsKeyDown", &ffi.TypeUint8, &ffi.TypeSint32)
+	isKeyReleased      = dll.MustPrep("IsKeyReleased", &ffi.TypeUint8, &ffi.TypeSint32)
+	isKeyUp            = dll.MustPrep("IsKeyUp", &ffi.TypeUint8, &ffi.TypeSint32)
+	getKeyPressed      = dll.MustPrep("GetKeyPressed", &ffi.TypeSint32)
+	getCharPressed     = dll.MustPrep("GetCharPressed", &ffi.TypeSint32)
+	getKeyName         = dll.MustPrep("GetKeyName", &ffi.TypePointer, &ffi.TypeSint32)
+	setExitKey         = dll.MustPrep("SetExitKey", &ffi.TypeVoid, &ffi.TypeSint32)
+
+	// Input-related functions: gamepads
+
+	isGamepadAvailable      = dll.MustPrep("IsGamepadAvailable", &ffi.TypeUint8, &ffi.TypeSint32)
+	getGamepadName          = dll.MustPrep("GetGamepadName", &ffi.TypePointer, &ffi.TypeSint32)
+	isGamepadButtonPressed  = dll.MustPrep("IsGamepadButtonPressed", &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
+	isGamepadButtonDown     = dll.MustPrep("IsGamepadButtonDown", &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
+	isGamepadButtonReleased = dll.MustPrep("IsGamepadButtonReleased", &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
+	isGamepadButtonUp       = dll.MustPrep("IsGamepadButtonUp", &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypeSint32)
+	getGamepadButtonPressed = dll.MustPrep("GetGamepadButtonPressed", &ffi.TypeSint32)
+	getGamepadAxisCount     = dll.MustPrep("GetGamepadAxisCount", &ffi.TypeSint32, &ffi.TypeSint32)
+	getGamepadAxisMovement  = dll.MustPrep("GetGamepadAxisMovement", &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32)
+	setGamepadMappings      = dll.MustPrep("SetGamepadMappings", &ffi.TypeSint32, &ffi.TypePointer)
+	setGamepadVibration     = dll.MustPrep("SetGamepadVibration", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -850,33 +887,198 @@ func LoadDroppedFiles() []string {
 // UnloadDroppedFiles - Unload dropped filepaths
 func UnloadDroppedFiles() {}
 
+// LoadAutomationEventList - Load automation events list from file, NULL for empty list, capacity = MAX_AUTOMATION_EVENTS
+func LoadAutomationEventList(fileName string) AutomationEventList {
+	var ret AutomationEventList
+	fileNamePtr := convert.ToBytePtr(fileName)
+	loadAutomationEventList.Call(&ret, &fileNamePtr)
+	return ret
+}
+
+// UnloadAutomationEventList - Unload automation events list from file
+func UnloadAutomationEventList(list *AutomationEventList) {
+	unloadAutomationEventList.Call(nil, list)
+}
+
+// ExportAutomationEventList - Export automation events list as text file
+func ExportAutomationEventList(list AutomationEventList, fileName string) bool {
+	var ret ffi.Arg
+	fileNamePtr := convert.ToBytePtr(fileName)
+	exportAutomationEventList.Call(&ret, &list, &fileNamePtr)
+	return ret.Bool()
+}
+
+// SetAutomationEventList - Set automation event list to record to
+func SetAutomationEventList(list *AutomationEventList) {
+	setAutomationEventList.Call(nil, &list)
+}
+
+// SetAutomationEventBaseFrame - Set automation event internal base frame to start recording
+func SetAutomationEventBaseFrame(frame int) {
+	f := int32(frame)
+	setAutomationEventBaseFrame.Call(nil, &f)
+}
+
+// StartAutomationEventRecording - Start recording automation events (AutomationEventList must be set)
+func StartAutomationEventRecording() {
+	startAutomationEventRecording.Call(nil)
+}
+
+// StopAutomationEventRecording - Stop recording automation events
+func StopAutomationEventRecording() {
+	stopAutomationEventRecording.Call(nil)
+}
+
+// PlayAutomationEvent - Play a recorded automation event
+func PlayAutomationEvent(event AutomationEvent) {
+	playAutomationEvent.Call(nil, &event)
+}
+
+// IsKeyPressed - Check if a key has been pressed once
+func IsKeyPressed(key int32) bool {
+	var ret ffi.Arg
+	isKeyPressed.Call(&ret, &key)
+	return ret.Bool()
+}
+
+// IsKeyPressedRepeat - Check if a key has been pressed again (Only PLATFORM_DESKTOP)
+func IsKeyPressedRepeat(key int32) bool {
+	var ret ffi.Arg
+	isKeyPressedRepeat.Call(&ret, &key)
+	return ret.Bool()
+}
+
+// IsKeyDown - Check if a key is being pressed
+func IsKeyDown(key int32) bool {
+	var ret ffi.Arg
+	isKeyDown.Call(&ret, &key)
+	return ret.Bool()
+}
+
+// IsKeyReleased - Check if a key has been released once
+func IsKeyReleased(key int32) bool {
+	var ret ffi.Arg
+	isKeyReleased.Call(&ret, &key)
+	return ret.Bool()
+}
+
+// IsKeyUp - Check if a key is NOT being pressed
+func IsKeyUp(key int32) bool {
+	var ret ffi.Arg
+	isKeyUp.Call(&ret, &key)
+	return ret.Bool()
+}
+
+// GetKeyPressed - Get key pressed (keycode), call it multiple times for keys queued, returns 0 when the queue is empty
+func GetKeyPressed() int32 {
+	var ret ffi.Arg
+	getKeyPressed.Call(&ret)
+	return int32(ret)
+}
+
+// GetCharPressed - Get char pressed (unicode), call it multiple times for chars queued, returns 0 when the queue is empty
+func GetCharPressed() int32 {
+	var ret ffi.Arg
+	getCharPressed.Call(&ret)
+	return int32(ret)
+}
+
+// GetKeyName - Get name of a QWERTY key on the current keyboard layout
+// (eg returns string 'q' for KEY_A on an AZERTY keyboard)
+func GetKeyName(key int32) string {
+	var ret *byte
+	getKeyName.Call(&ret, &key)
+	return convert.ToString(ret)
+}
+
+// SetExitKey - Set a custom key to exit program (default is ESC)
+func SetExitKey(key int32) {
+	setExitKey.Call(nil, &key)
+}
+
+// IsGamepadAvailable - Check if a gamepad is available
+func IsGamepadAvailable(gamepad int32) bool {
+	var ret ffi.Arg
+	isGamepadAvailable.Call(&ret, &gamepad)
+	return ret.Bool()
+}
+
+// GetGamepadName - Get gamepad internal name id
+func GetGamepadName(gamepad int32) string {
+	var ret *byte
+	getGamepadName.Call(&ret, &gamepad)
+	return convert.ToString(ret)
+}
+
+// IsGamepadButtonPressed - Check if a gamepad button has been pressed once
+func IsGamepadButtonPressed(gamepad int32, button int32) bool {
+	var ret ffi.Arg
+	isGamepadButtonPressed.Call(&ret, &gamepad, &button)
+	return ret.Bool()
+}
+
+// IsGamepadButtonDown - Check if a gamepad button is being pressed
+func IsGamepadButtonDown(gamepad int32, button int32) bool {
+	var ret ffi.Arg
+	isGamepadButtonDown.Call(&ret, &gamepad, &button)
+	return ret.Bool()
+}
+
+// IsGamepadButtonReleased - Check if a gamepad button has been released once
+func IsGamepadButtonReleased(gamepad int32, button int32) bool {
+	var ret ffi.Arg
+	isGamepadButtonReleased.Call(&ret, &gamepad, &button)
+	return ret.Bool()
+}
+
+// IsGamepadButtonUp - Check if a gamepad button is NOT being pressed
+func IsGamepadButtonUp(gamepad int32, button int32) bool {
+	var ret ffi.Arg
+	isGamepadButtonUp.Call(&ret, &gamepad, &button)
+	return ret.Bool()
+}
+
+// GetGamepadButtonPressed - Get the last gamepad button pressed
+func GetGamepadButtonPressed() int32 {
+	var ret ffi.Arg
+	getGamepadButtonPressed.Call(&ret)
+	return int32(ret)
+}
+
+// GetGamepadAxisCount - Get gamepad axis count for a gamepad
+func GetGamepadAxisCount(gamepad int32) int32 {
+	var ret ffi.Arg
+	getGamepadAxisCount.Call(&ret, &gamepad)
+	return int32(ret)
+}
+
+// GetGamepadAxisMovement - Get axis movement value for a gamepad axis
+func GetGamepadAxisMovement(gamepad int32, axis int32) float32 {
+	var ret float32
+	getGamepadAxisMovement.Call(&ret, &gamepad, &axis)
+	return ret
+}
+
+// SetGamepadMappings - Set internal gamepad mappings (SDL_GameControllerDB)
+func SetGamepadMappings(mappings string) int32 {
+	var ret ffi.Arg
+	mappingsPtr := convert.ToBytePtr(mappings)
+	setGamepadMappings.Call(&ret, &mappingsPtr)
+	return int32(ret)
+}
+
+// SetGamepadVibration - Set gamepad vibration for both motors (duration in seconds)
+func SetGamepadVibration(gamepad int32, leftMotor, rightMotor, duration float32) {
+	setGamepadVibration.Call(nil, &gamepad, &leftMotor, &rightMotor, &duration)
+}
+
 // GetMouseDelta - Get mouse delta between frames
 func GetMouseDelta() Vector2 {
 	return Vector2{}
 }
 
-// IsKeyDown - Check if a key is being pressed
-func IsKeyDown(key int32) bool {
-	return false
-}
-
-// IsGamepadAvailable - Check if a gamepad is available
-func IsGamepadAvailable(gamepad int32) bool {
-	return false
-}
-
-// GetGamepadAxisMovement - Get axis movement value for a gamepad axis
-func GetGamepadAxisMovement(gamepad int32, axis int32) float32 {
-	return 0
-}
-
 // IsMouseButtonDown - Check if a mouse button is being pressed
 func IsMouseButtonDown(button MouseButton) bool {
-	return false
-}
-
-// IsKeyPressed - Check if a key has been pressed once
-func IsKeyPressed(key int32) bool {
 	return false
 }
 

@@ -38,3 +38,8 @@ var typeVrDeviceInfo = ffi.NewType(
 )
 var typeRay = ffi.NewType(&typeVector3, &typeVector3)
 var typeFilePathList = ffi.NewType(&ffi.TypeUint32, &ffi.TypePointer)
+var typeAutomationEvent = ffi.NewType(
+	&ffi.TypeUint32, &ffi.TypeUint32,
+	&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32,
+)
+var typeAutomationEventList = ffi.NewType(&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypePointer)
