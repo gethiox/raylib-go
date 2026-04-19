@@ -4,6 +4,7 @@
 package rl
 
 import (
+	"image/color"
 	"unsafe"
 
 	"github.com/gen2brain/raylib-go/raylib/internal/convert"
@@ -75,6 +76,68 @@ var (
 	enableCursor     = dll.MustPrep("EnableCursor", &ffi.TypeVoid)
 	disableCursor    = dll.MustPrep("DisableCursor", &ffi.TypeVoid)
 	isCursorOnScreen = dll.MustPrep("IsCursorOnScreen", &ffi.TypeUint8)
+
+	// Drawing-related functions
+
+	clearBackground   = dll.MustPrep("ClearBackground", &ffi.TypeVoid, &typeColor)
+	beginDrawing      = dll.MustPrep("BeginDrawing", &ffi.TypeVoid)
+	endDrawing        = dll.MustPrep("EndDrawing", &ffi.TypeVoid)
+	beginMode2D       = dll.MustPrep("BeginMode2D", &ffi.TypeVoid, &typeCamera2D)
+	endMode2D         = dll.MustPrep("EndMode2D", &ffi.TypeVoid)
+	beginMode3D       = dll.MustPrep("BeginMode3D", &ffi.TypeVoid, &typeCamera3D)
+	endMode3D         = dll.MustPrep("EndMode3D", &ffi.TypeVoid)
+	beginTextureMode  = dll.MustPrep("BeginTextureMode", &ffi.TypeVoid, &typeRenderTexture2D)
+	endTextureMode    = dll.MustPrep("EndTextureMode", &ffi.TypeVoid)
+	beginShaderMode   = dll.MustPrep("BeginShaderMode", &ffi.TypeVoid, &typeShader)
+	endShaderMode     = dll.MustPrep("EndShaderMode", &ffi.TypeVoid)
+	beginBlendMode    = dll.MustPrep("BeginBlendMode", &ffi.TypeVoid, &ffi.TypeSint32)
+	endBlendMode      = dll.MustPrep("EndBlendMode", &ffi.TypeVoid)
+	beginScissorMode  = dll.MustPrep("BeginScissorMode", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+	endScissorMode    = dll.MustPrep("EndScissorMode", &ffi.TypeVoid)
+	beginVrStereoMode = dll.MustPrep("BeginVrStereoMode", &ffi.TypeVoid, &typeVrStereoConfig)
+	endVrStereoMode   = dll.MustPrep("EndVrStereoMode", &ffi.TypeVoid)
+
+	// VR stereo config functions for VR simulator
+
+	loadVrStereoConfig   = dll.MustPrep("LoadVrStereoConfig", &typeVrStereoConfig, &typeVrDeviceInfo)
+	unloadVrStereoConfig = dll.MustPrep("UnloadVrStereoConfig", &ffi.TypeVoid, &typeVrStereoConfig)
+
+	// Shader management functions
+
+	loadShader              = dll.MustPrep("LoadShader", &typeShader, &ffi.TypePointer, &ffi.TypePointer)
+	loadShaderFromMemory    = dll.MustPrep("LoadShaderFromMemory", &typeShader, &ffi.TypePointer, &ffi.TypePointer)
+	isShaderValid           = dll.MustPrep("IsShaderValid", &ffi.TypeUint8, &typeShader)
+	getShaderLocation       = dll.MustPrep("GetShaderLocation", &ffi.TypeSint32, &typeShader, &ffi.TypePointer)
+	getShaderLocationAttrib = dll.MustPrep("GetShaderLocationAttrib", &ffi.TypeSint32, &typeShader, &ffi.TypePointer)
+	setShaderValue          = dll.MustPrep("SetShaderValue", &ffi.TypeVoid, &typeShader, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32)
+	setShaderValueV         = dll.MustPrep("SetShaderValueV", &ffi.TypeVoid, &typeShader, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32)
+	setShaderValueMatrix    = dll.MustPrep("SetShaderValueMatrix", &ffi.TypeVoid, &typeShader, &ffi.TypeSint32, &typeMatrix)
+	setShaderValueTexture   = dll.MustPrep("SetShaderValueTexture", &ffi.TypeVoid, &typeShader, &ffi.TypeSint32, &typeTexture2D)
+	unloadShader            = dll.MustPrep("UnloadShader", &ffi.TypeVoid, &typeShader)
+
+	// Screen-space-related functions
+
+	getScreenToWorldRay   = dll.MustPrep("GetScreenToWorldRay", &typeRay, &typeVector2, &typeCamera3D)
+	getScreenToWorldRayEx = dll.MustPrep("GetScreenToWorldRayEx", &typeRay, &typeVector2, &typeCamera3D, &ffi.TypeSint32, &ffi.TypeSint32)
+	getWorldToScreen      = dll.MustPrep("GetWorldToScreen", &typeVector2, &typeVector3, &typeCamera3D)
+	getWorldToScreenEx    = dll.MustPrep("GetWorldToScreenEx", &typeVector2, &typeVector3, &typeCamera3D, &ffi.TypeSint32, &ffi.TypeSint32)
+	getWorldToScreen2D    = dll.MustPrep("GetWorldToScreen2D", &typeVector2, &typeVector2, &typeCamera2D)
+	getScreenToWorld2D    = dll.MustPrep("GetScreenToWorld2D", &typeVector2, &typeVector2, &typeCamera2D)
+	getCameraMatrix       = dll.MustPrep("GetCameraMatrix", &typeMatrix, &typeCamera3D)
+	getCameraMatrix2D     = dll.MustPrep("GetCameraMatrix2D", &typeMatrix, &typeCamera2D)
+
+	// Timing-related functions
+
+	setTargetFPS = dll.MustPrep("SetTargetFPS", &ffi.TypeVoid, &ffi.TypeSint32)
+	getFrameTime = dll.MustPrep("GetFrameTime", &ffi.TypeFloat)
+	getTime      = dll.MustPrep("GetTime", &ffi.TypeDouble)
+	getFPS       = dll.MustPrep("GetFPS", &ffi.TypeSint32)
+
+	// Custom frame control functions
+
+	swapScreenBuffer = dll.MustPrep("SwapScreenBuffer", &ffi.TypeVoid)
+	pollInputEvents  = dll.MustPrep("PollInputEvents", &ffi.TypeVoid)
+	waitTime         = dll.MustPrep("WaitTime", &ffi.TypeVoid, &ffi.TypeDouble)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -428,6 +491,282 @@ func IsCursorOnScreen() bool {
 	return ret.Bool()
 }
 
+// ClearBackground - Set background color (framebuffer clear color)
+func ClearBackground(col color.RGBA) {
+	clearBackground.Call(nil, col)
+}
+
+// BeginDrawing - Setup canvas (framebuffer) to start drawing
+func BeginDrawing() {
+	beginDrawing.Call(nil)
+}
+
+// EndDrawing - End canvas drawing and swap buffers (double buffering)
+func EndDrawing() {
+	endDrawing.Call(nil)
+}
+
+// BeginMode2D - Begin 2D mode with custom camera (2D)
+func BeginMode2D(camera Camera2D) {
+	beginMode2D.Call(nil, &camera)
+}
+
+// EndMode2D - Ends 2D mode with custom camera
+func EndMode2D() {
+	endMode2D.Call(nil)
+}
+
+// BeginMode3D - Begin 3D mode with custom camera (3D)
+func BeginMode3D(camera Camera3D) {
+	beginMode3D.Call(nil, &camera)
+}
+
+// EndMode3D - Ends 3D mode and returns to default 2D orthographic mode
+func EndMode3D() {
+	endMode3D.Call(nil)
+}
+
+// BeginTextureMode - Begin drawing to render texture
+func BeginTextureMode(target RenderTexture2D) {
+	beginTextureMode.Call(nil, &target)
+}
+
+// EndTextureMode - Ends drawing to render texture
+func EndTextureMode() {
+	endTextureMode.Call(nil)
+}
+
+// BeginShaderMode - Begin custom shader drawing
+func BeginShaderMode(shader Shader) {
+	beginShaderMode.Call(nil, &shader)
+}
+
+// EndShaderMode - End custom shader drawing (use default shader)
+func EndShaderMode() {
+	endShaderMode.Call(nil)
+}
+
+// BeginBlendMode - Begin blending mode (alpha, additive, multiplied, subtract, custom)
+func BeginBlendMode(mode BlendMode) {
+	beginBlendMode.Call(nil, &mode)
+}
+
+// EndBlendMode - End blending mode (reset to default: alpha blending)
+func EndBlendMode() {
+	endBlendMode.Call(nil)
+}
+
+// BeginScissorMode - Begin scissor mode (define screen area for following drawing)
+func BeginScissorMode(x int32, y int32, width int32, height int32) {
+	beginScissorMode.Call(nil, &x, &y, &width, &height)
+}
+
+// EndScissorMode - End scissor mode
+func EndScissorMode() {
+	endScissorMode.Call(nil)
+}
+
+// BeginVrStereoMode - Begin stereo rendering (requires VR simulator)
+func BeginVrStereoMode(config VrStereoConfig) {
+	beginVrStereoMode.Call(nil, &config)
+}
+
+// EndVrStereoMode - End stereo rendering (requires VR simulator)
+func EndVrStereoMode() {
+	endVrStereoMode.Call(nil)
+}
+
+// LoadVrStereoConfig - Load VR stereo config for VR simulator device parameters
+func LoadVrStereoConfig(device VrDeviceInfo) VrStereoConfig {
+	var ret VrStereoConfig
+	loadVrStereoConfig.Call(&ret, &device)
+	return ret
+}
+
+// UnloadVrStereoConfig - Unload VR stereo config
+func UnloadVrStereoConfig(config VrStereoConfig) {
+	unloadVrStereoConfig.Call(nil, &config)
+}
+
+// LoadShader - Load shader from files and bind default locations
+func LoadShader(vsFileName string, fsFileName string) Shader {
+	var ret Shader
+	// "" becomes NULL to either load a vertex or fragment shader: https://github.com/gen2brain/raylib-go/issues/172
+	vsFileNamePtr, fsFileNamePtr := convert.ToBytePtrNullable(vsFileName), convert.ToBytePtrNullable(fsFileName)
+	loadShader.Call(&ret, &vsFileNamePtr, &fsFileNamePtr)
+	return ret
+}
+
+// LoadShaderFromMemory - Load shader from code strings and bind default locations
+func LoadShaderFromMemory(vsCode string, fsCode string) Shader {
+	var ret Shader
+	// "" becomes NULL to either load a vertex or fragment shader: https://github.com/gen2brain/raylib-go/issues/172
+	vsCodePtr, fsCodePtr := convert.ToBytePtrNullable(vsCode), convert.ToBytePtrNullable(fsCode)
+	loadShaderFromMemory.Call(&ret, &vsCodePtr, &fsCodePtr)
+	return ret
+}
+
+// IsShaderValid - Check if a shader is valid (loaded on GPU)
+func IsShaderValid(shader Shader) bool {
+	var ret ffi.Arg
+	isShaderValid.Call(&ret, &shader)
+	return ret.Bool()
+}
+
+// GetShaderLocation - Get shader uniform location
+func GetShaderLocation(shader Shader, uniformName string) int32 {
+	var ret ffi.Arg
+	uniformNamePtr := convert.ToBytePtr(uniformName)
+	getShaderLocation.Call(&ret, &shader, &uniformNamePtr)
+	return int32(ret)
+}
+
+// GetShaderLocationAttrib - Get shader attribute location
+func GetShaderLocationAttrib(shader Shader, attribName string) int32 {
+	var ret ffi.Arg
+	attribNamePtr := convert.ToBytePtr(attribName)
+	getShaderLocationAttrib.Call(&ret, &shader, &attribNamePtr)
+	return int32(ret)
+}
+
+// SetShaderValue - Set shader uniform value
+func SetShaderValue(shader Shader, locIndex int32, value []float32, uniformType ShaderUniformDataType) {
+	valuePtr := &value[0]
+	setShaderValue.Call(nil, &shader, &locIndex, &valuePtr, &uniformType)
+}
+
+// SetShaderValueV - Set shader uniform value vector
+func SetShaderValueV(shader Shader, locIndex int32, value []float32, uniformType ShaderUniformDataType, count int32) {
+	valuePtr := &value[0]
+	setShaderValueV.Call(nil, &shader, &locIndex, &valuePtr, &uniformType, &count)
+}
+
+// SetShaderValueMatrix - Set shader uniform value (matrix 4x4)
+func SetShaderValueMatrix(shader Shader, locIndex int32, mat Matrix) {
+	setShaderValueMatrix.Call(nil, &shader, &locIndex, &mat)
+}
+
+// SetShaderValueTexture - Set shader uniform value for texture (sampler2d)
+func SetShaderValueTexture(shader Shader, locIndex int32, texture Texture2D) {
+	setShaderValueTexture.Call(nil, &shader, &locIndex, &texture)
+}
+
+// UnloadShader - Unload shader from GPU memory (VRAM)
+func UnloadShader(shader Shader) {
+	unloadShader.Call(nil, &shader)
+}
+
+// GetMouseRay - Get a ray trace from mouse position
+//
+// Deprecated: Use [GetScreenToWorldRay] instead.
+func GetMouseRay(mousePosition Vector2, camera Camera) Ray {
+	return GetScreenToWorldRay(mousePosition, camera)
+}
+
+// GetScreenToWorldRay - Get a ray trace from screen position (i.e mouse)
+func GetScreenToWorldRay(position Vector2, camera Camera) Ray {
+	var ret Ray
+	getScreenToWorldRay.Call(&ret, &position, &camera)
+	return ret
+}
+
+// GetScreenToWorldRayEx - Get a ray trace from screen position (i.e mouse) in a viewport
+func GetScreenToWorldRayEx(position Vector2, camera Camera, width, height int32) Ray {
+	var ret Ray
+	getScreenToWorldRayEx.Call(&ret, &position, &camera, &width, &height)
+	return ret
+}
+
+// GetWorldToScreen - Get the screen space position for a 3d world space position
+func GetWorldToScreen(position Vector3, camera Camera) Vector2 {
+	var ret Vector2
+	getWorldToScreen.Call(&ret, &position, &camera)
+	return ret
+}
+
+// GetWorldToScreenEx - Get size position for a 3d world space position
+func GetWorldToScreenEx(position Vector3, camera Camera, width int32, height int32) Vector2 {
+	var ret Vector2
+	getWorldToScreenEx.Call(&ret, &position, &camera, &width, &height)
+	return ret
+}
+
+// GetWorldToScreen2D - Get the screen space position for a 2d camera world space position
+func GetWorldToScreen2D(position Vector2, camera Camera2D) Vector2 {
+	var ret Vector2
+	getWorldToScreen2D.Call(&ret, &position, &camera)
+	return ret
+}
+
+// GetScreenToWorld2D - Get the world space position for a 2d camera screen space position
+func GetScreenToWorld2D(position Vector2, camera Camera2D) Vector2 {
+	var ret Vector2
+	getScreenToWorld2D.Call(&ret, &position, &camera)
+	return ret
+}
+
+// GetCameraMatrix - Get camera transform matrix (view matrix)
+func GetCameraMatrix(camera Camera) Matrix {
+	var ret Matrix
+	getCameraMatrix.Call(&ret, &camera)
+	return ret
+}
+
+// GetCameraMatrix2D - Get camera 2d transform matrix
+func GetCameraMatrix2D(camera Camera2D) Matrix {
+	var ret Matrix
+	getCameraMatrix2D.Call(&ret, &camera)
+	return ret
+}
+
+// SetTargetFPS - Set target FPS (maximum)
+func SetTargetFPS(fps int32) {
+	setTargetFPS.Call(nil, &fps)
+}
+
+// GetFrameTime - Get time in seconds for last frame drawn (delta time)
+func GetFrameTime() float32 {
+	var ret float32
+	getFrameTime.Call(&ret)
+	return ret
+}
+
+// GetTime - Get elapsed time in seconds since InitWindow()
+func GetTime() float64 {
+	var ret float64
+	getTime.Call(&ret)
+	return ret
+}
+
+// GetFPS - Get current FPS
+func GetFPS() int32 {
+	var ret int32
+	getFPS.Call(&ret)
+	return ret
+}
+
+// Custom frame control functions
+// NOTE: SwapScreenBuffer and PollInputEvents are intended for advanced users that want full control over the frame processing
+// By default EndDrawing() does this job: draws everything + SwapScreenBuffer() + manage frame timing + PollInputEvents()
+// To avoid that behaviour and control frame processes manually you must recompile raylib with SUPPORT_CUSTOM_FRAME_CONTROL enabled in config.h
+//
+// See: https://github.com/gen2brain/raylib-go/issues/378
+
+// SwapScreenBuffer - Swap back buffer with front buffer (screen drawing)
+func SwapScreenBuffer() {
+	swapScreenBuffer.Call(nil)
+}
+
+// PollInputEvents - Register all input events
+func PollInputEvents() {
+	pollInputEvents.Call(nil)
+}
+
+// WaitTime - Wait for some time (halt program execution)
+func WaitTime(seconds float64) {
+	waitTime.Call(nil, &seconds)
+}
+
 // SetTraceLogCallback - Set custom trace log
 func SetTraceLogCallback(fn TraceLogCallbackFun) {
 	cb := traceLogCallbackWrapper(fn)
@@ -466,10 +805,5 @@ func IsKeyPressed(key int32) bool {
 
 // GetMouseWheelMove - Get mouse wheel movement for X or Y, whichever is larger
 func GetMouseWheelMove() float32 {
-	return 0
-}
-
-// GetFrameTime - Get time in seconds for last frame drawn (delta time)
-func GetFrameTime() float32 {
 	return 0
 }
