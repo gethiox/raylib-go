@@ -193,6 +193,42 @@ var (
 	getGamepadAxisMovement  = dll.MustPrep("GetGamepadAxisMovement", &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32)
 	setGamepadMappings      = dll.MustPrep("SetGamepadMappings", &ffi.TypeSint32, &ffi.TypePointer)
 	setGamepadVibration     = dll.MustPrep("SetGamepadVibration", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat)
+
+	// Input-related functions: mouse
+
+	isMouseButtonPressed  = dll.MustPrep("IsMouseButtonPressed", &ffi.TypeUint8, &ffi.TypeSint32)
+	isMouseButtonDown     = dll.MustPrep("IsMouseButtonDown", &ffi.TypeUint8, &ffi.TypeSint32)
+	isMouseButtonReleased = dll.MustPrep("IsMouseButtonReleased", &ffi.TypeUint8, &ffi.TypeSint32)
+	isMouseButtonUp       = dll.MustPrep("IsMouseButtonUp", &ffi.TypeUint8, &ffi.TypeSint32)
+	getMouseX             = dll.MustPrep("GetMouseX", &ffi.TypeSint32)
+	getMouseY             = dll.MustPrep("GetMouseY", &ffi.TypeSint32)
+	getMousePosition      = dll.MustPrep("GetMousePosition", &typeVector2)
+	getMouseDelta         = dll.MustPrep("GetMouseDelta", &typeVector2)
+	setMousePosition      = dll.MustPrep("SetMousePosition", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32)
+	setMouseOffset        = dll.MustPrep("SetMouseOffset", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32)
+	setMouseScale         = dll.MustPrep("SetMouseScale", &ffi.TypeVoid, &ffi.TypeFloat, &ffi.TypeFloat)
+	getMouseWheelMove     = dll.MustPrep("GetMouseWheelMove", &ffi.TypeFloat)
+	getMouseWheelMoveV    = dll.MustPrep("GetMouseWheelMoveV", &typeVector2)
+	setMouseCursor        = dll.MustPrep("SetMouseCursor", &ffi.TypeVoid, &ffi.TypeSint32)
+
+	// Input-related functions: touch
+
+	getTouchX          = dll.MustPrep("GetTouchX", &ffi.TypeSint32)
+	getTouchY          = dll.MustPrep("GetTouchY", &ffi.TypeSint32)
+	getTouchPosition   = dll.MustPrep("GetTouchPosition", &typeVector2, &ffi.TypeSint32)
+	getTouchPointId    = dll.MustPrep("GetTouchPointId", &ffi.TypeSint32, &ffi.TypeSint32)
+	getTouchPointCount = dll.MustPrep("GetTouchPointCount", &ffi.TypeSint32)
+
+	// Gestures and Touch Handling Functions (Module: rgestures)
+
+	setGesturesEnabled     = dll.MustPrep("SetGesturesEnabled", &ffi.TypeVoid, &ffi.TypeUint32)
+	isGestureDetected      = dll.MustPrep("IsGestureDetected", &ffi.TypeUint8, &ffi.TypeUint32)
+	getGestureDetected     = dll.MustPrep("GetGestureDetected", &ffi.TypeSint32)
+	getGestureHoldDuration = dll.MustPrep("GetGestureHoldDuration", &ffi.TypeFloat)
+	getGestureDragVector   = dll.MustPrep("GetGestureDragVector", &typeVector2)
+	getGestureDragAngle    = dll.MustPrep("GetGestureDragAngle", &ffi.TypeFloat)
+	getGesturePinchVector  = dll.MustPrep("GetGesturePinchVector", &typeVector2)
+	getGesturePinchAngle   = dll.MustPrep("GetGesturePinchAngle", &ffi.TypeFloat)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -1072,17 +1108,181 @@ func SetGamepadVibration(gamepad int32, leftMotor, rightMotor, duration float32)
 	setGamepadVibration.Call(nil, &gamepad, &leftMotor, &rightMotor, &duration)
 }
 
-// GetMouseDelta - Get mouse delta between frames
-func GetMouseDelta() Vector2 {
-	return Vector2{}
+// IsMouseButtonPressed - Check if a mouse button has been pressed once
+func IsMouseButtonPressed(button MouseButton) bool {
+	var ret ffi.Arg
+	isMouseButtonPressed.Call(&ret, &button)
+	return ret.Bool()
 }
 
 // IsMouseButtonDown - Check if a mouse button is being pressed
 func IsMouseButtonDown(button MouseButton) bool {
-	return false
+	var ret ffi.Arg
+	isMouseButtonDown.Call(&ret, &button)
+	return ret.Bool()
+}
+
+// IsMouseButtonReleased - Check if a mouse button has been released once
+func IsMouseButtonReleased(button MouseButton) bool {
+	var ret ffi.Arg
+	isMouseButtonReleased.Call(&ret, &button)
+	return ret.Bool()
+}
+
+// IsMouseButtonUp - Check if a mouse button is NOT being pressed
+func IsMouseButtonUp(button MouseButton) bool {
+	var ret ffi.Arg
+	isMouseButtonUp.Call(&ret, &button)
+	return ret.Bool()
+}
+
+// GetMouseX - Get mouse position X
+func GetMouseX() int32 {
+	var ret ffi.Arg
+	getMouseX.Call(&ret)
+	return int32(ret)
+}
+
+// GetMouseY - Get mouse position Y
+func GetMouseY() int32 {
+	var ret ffi.Arg
+	getMouseY.Call(&ret)
+	return int32(ret)
+}
+
+// GetMousePosition - Get mouse position XY
+func GetMousePosition() Vector2 {
+	var ret Vector2
+	getMousePosition.Call(&ret)
+	return ret
+}
+
+// GetMouseDelta - Get mouse delta between frames
+func GetMouseDelta() Vector2 {
+	var ret Vector2
+	getMouseDelta.Call(&ret)
+	return ret
+}
+
+// SetMousePosition - Set mouse position XY
+func SetMousePosition(x int32, y int32) {
+	setMousePosition.Call(nil, &x, &y)
+}
+
+// SetMouseOffset - Set mouse offset
+func SetMouseOffset(offsetX int32, offsetY int32) {
+	setMouseOffset.Call(nil, &offsetX, &offsetY)
+}
+
+// SetMouseScale - Set mouse scaling
+func SetMouseScale(scaleX float32, scaleY float32) {
+	setMouseScale.Call(nil, &scaleX, &scaleY)
 }
 
 // GetMouseWheelMove - Get mouse wheel movement for X or Y, whichever is larger
 func GetMouseWheelMove() float32 {
-	return 0
+	var ret float32
+	getMouseWheelMove.Call(&ret)
+	return ret
+}
+
+// GetMouseWheelMoveV - Get mouse wheel movement for both X and Y
+func GetMouseWheelMoveV() Vector2 {
+	var ret Vector2
+	getMouseWheelMoveV.Call(&ret)
+	return ret
+}
+
+// SetMouseCursor - Set mouse cursor
+func SetMouseCursor(cursor int32) {
+	setMouseCursor.Call(nil, &cursor)
+}
+
+// GetTouchX - Get touch position X for touch point 0 (relative to screen size)
+func GetTouchX() int32 {
+	var ret ffi.Arg
+	getTouchX.Call(&ret)
+	return int32(ret)
+}
+
+// GetTouchY - Get touch position Y for touch point 0 (relative to screen size)
+func GetTouchY() int32 {
+	var ret ffi.Arg
+	getTouchY.Call(&ret)
+	return int32(ret)
+}
+
+// GetTouchPosition - Get touch position XY for a touch point index (relative to screen size)
+func GetTouchPosition(index int32) Vector2 {
+	var ret Vector2
+	getTouchPosition.Call(&ret, &index)
+	return ret
+}
+
+// GetTouchPointId - Get touch point identifier for given index
+func GetTouchPointId(index int32) int32 {
+	var ret ffi.Arg
+	getTouchPointId.Call(&ret, &index)
+	return int32(ret)
+}
+
+// GetTouchPointCount - Get number of touch points
+func GetTouchPointCount() int32 {
+	var ret ffi.Arg
+	getTouchPointCount.Call(&ret)
+	return int32(ret)
+}
+
+// SetGesturesEnabled - Enable a set of gestures using flags
+func SetGesturesEnabled(flags uint32) {
+	setGesturesEnabled.Call(nil, &flags)
+}
+
+// IsGestureDetected - Check if a gesture have been detected
+func IsGestureDetected(gesture Gestures) bool {
+	var ret ffi.Arg
+	isGestureDetected.Call(&ret, &gesture)
+	return ret.Bool()
+}
+
+// GetGestureDetected - Get latest detected gesture
+func GetGestureDetected() Gestures {
+	var ret ffi.Arg
+	getGestureDetected.Call(&ret)
+	return Gestures(ret)
+}
+
+// GetGestureHoldDuration - Get gesture hold time in milliseconds
+func GetGestureHoldDuration() float32 {
+	var ret float32
+	getGestureHoldDuration.Call(&ret)
+	return ret
+}
+
+// GetGestureDragVector - Get gesture drag vector
+func GetGestureDragVector() Vector2 {
+	var ret Vector2
+	getGestureDragVector.Call(&ret)
+	return ret
+}
+
+// GetGestureDragAngle - Get gesture drag angle
+func GetGestureDragAngle() float32 {
+	var ret float32
+	getGestureDragAngle.Call(&ret)
+	return ret
+}
+
+// GetGesturePinchVector - Get gesture pinch delta
+func GetGesturePinchVector() Vector2 {
+	var ret Vector2
+	getGesturePinchVector.Call(&ret)
+	return ret
+}
+
+// GetGesturePinchAngle - Get gesture pinch angle
+func GetGesturePinchAngle() float32 {
+	var ret float32
+	getGesturePinchAngle.Call(&ret)
+	return ret
 }
