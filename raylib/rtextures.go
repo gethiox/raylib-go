@@ -280,6 +280,8 @@ func ExportImage(image Image, fileName string) bool {
 }
 
 // ExportImageToMemory - Export image to memory buffer
+//
+// The returned memory is a Go-managed slice. It doesn't need to be freed.
 func ExportImageToMemory(image Image, fileType string) []byte {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -287,8 +289,14 @@ func ExportImageToMemory(image Image, fileType string) []byte {
 
 	var size C.int
 	ret := C.ExportImageToMemory(*cimage, cfileType, &size)
-	v := unsafe.Slice((*byte)(unsafe.Pointer(ret)), size)
-	return v
+	defer C.free(unsafe.Pointer(ret)) // free the memory
+
+	if ret == nil {
+		return nil
+	}
+	result := make([]byte, size)
+	copy(result, unsafe.Slice((*byte)(unsafe.Pointer(ret)), size))
+	return result
 }
 
 // ImageCopy - Create an image duplicate (useful for transformations)
