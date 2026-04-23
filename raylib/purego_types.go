@@ -43,3 +43,4 @@ var typeAutomationEvent = ffi.NewType(
 	&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32,
 )
 var typeAutomationEventList = ffi.NewType(&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypePointer)
+var typeRectangle = ffi.NewType(&ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat)

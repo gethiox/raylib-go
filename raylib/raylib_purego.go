@@ -229,6 +229,55 @@ var (
 	getGestureDragAngle    = dll.MustPrep("GetGestureDragAngle", &ffi.TypeFloat)
 	getGesturePinchVector  = dll.MustPrep("GetGesturePinchVector", &typeVector2)
 	getGesturePinchAngle   = dll.MustPrep("GetGesturePinchAngle", &ffi.TypeFloat)
+
+	// Basic Shapes Drawing Functions (Module: shapes)
+
+	setShapesTexture          = dll.MustPrep("SetShapesTexture", &ffi.TypeVoid, &typeTexture2D, &typeRectangle)
+	getShapesTexture          = dll.MustPrep("GetShapesTexture", &typeTexture2D)
+	getShapesTextureRectangle = dll.MustPrep("GetShapesTextureRectangle", &typeRectangle)
+
+	// Basic shapes drawing functions
+
+	drawPixel                   = dll.MustPrep("DrawPixel", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawPixelV                  = dll.MustPrep("DrawPixelV", &ffi.TypeVoid, &typeVector2, &typeColor)
+	drawLine                    = dll.MustPrep("DrawLine", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawLineV                   = dll.MustPrep("DrawLineV", &ffi.TypeVoid, &typeVector2, &typeVector2, &typeColor)
+	drawLineEx                  = dll.MustPrep("DrawLineEx", &ffi.TypeVoid, &typeVector2, &typeVector2, &ffi.TypeFloat, &typeColor)
+	drawLineStrip               = dll.MustPrep("DrawLineStrip", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &typeColor)
+	drawLineBezier              = dll.MustPrep("DrawLineBezier", &ffi.TypeVoid, &typeVector2, &typeVector2, &ffi.TypeFloat, &typeColor)
+	drawLineDashed              = dll.MustPrep("DrawLineDashed", &ffi.TypeVoid, &typeVector2, &typeVector2, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawCircle                  = dll.MustPrep("DrawCircle", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat, &typeColor)
+	drawCircleV                 = dll.MustPrep("DrawCircleV", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &typeColor)
+	drawCircleGradient          = dll.MustPrep("DrawCircleGradient", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &typeColor, &typeColor)
+	drawCircleSector            = dll.MustPrep("DrawCircleSector", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawCircleSectorLines       = dll.MustPrep("DrawCircleSectorLines", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawCircleLines             = dll.MustPrep("DrawCircleLines", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat, &typeColor)
+	drawCircleLinesV            = dll.MustPrep("DrawCircleLinesV", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawEllipse                 = dll.MustPrep("DrawEllipse", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawEllipseV                = dll.MustPrep("DrawEllipseV", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawEllipseLines            = dll.MustPrep("DrawEllipseLines", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawEllipseLinesV           = dll.MustPrep("DrawEllipseLinesV", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawRing                    = dll.MustPrep("DrawRing", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawRingLines               = dll.MustPrep("DrawRingLines", &ffi.TypeVoid, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawRectangle               = dll.MustPrep("DrawRectangle", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawRectangleV              = dll.MustPrep("DrawRectangleV", &ffi.TypeVoid, &typeVector2, &typeVector2, &typeColor)
+	drawRectangleRec            = dll.MustPrep("DrawRectangleRec", &ffi.TypeVoid, &typeRectangle, &typeColor)
+	drawRectanglePro            = dll.MustPrep("DrawRectanglePro", &ffi.TypeVoid, &typeRectangle, &typeVector2, &ffi.TypeFloat, &typeColor)
+	drawRectangleGradientV      = dll.MustPrep("DrawRectangleGradientV", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor, &typeColor)
+	drawRectangleGradientH      = dll.MustPrep("DrawRectangleGradientH", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor, &typeColor)
+	drawRectangleGradientEx     = dll.MustPrep("DrawRectangleGradientEx", &ffi.TypeVoid, &typeRectangle, &typeColor, &typeColor, &typeColor, &typeColor)
+	drawRectangleLines          = dll.MustPrep("DrawRectangleLines", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawRectangleLinesEx        = dll.MustPrep("DrawRectangleLinesEx", &ffi.TypeVoid, &typeRectangle, &ffi.TypeFloat, &typeColor)
+	drawRectangleRounded        = dll.MustPrep("DrawRectangleRounded", &ffi.TypeVoid, &typeRectangle, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawRectangleRoundedLines   = dll.MustPrep("DrawRectangleRoundedLines", &ffi.TypeVoid, &typeRectangle, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawRectangleRoundedLinesEx = dll.MustPrep("DrawRectangleRoundedLinesEx", &ffi.TypeVoid, &typeRectangle, &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeFloat, &typeColor)
+	drawTriangle                = dll.MustPrep("DrawTriangle", &ffi.TypeVoid, &typeVector2, &typeVector2, &typeVector2, &typeColor)
+	drawTriangleLines           = dll.MustPrep("DrawTriangleLines", &ffi.TypeVoid, &typeVector2, &typeVector2, &typeVector2, &typeColor)
+	drawTriangleFan             = dll.MustPrep("DrawTriangleFan", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &typeColor)
+	drawTriangleStrip           = dll.MustPrep("DrawTriangleStrip", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &typeColor)
+	drawPoly                    = dll.MustPrep("DrawPoly", &ffi.TypeVoid, &typeVector2, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawPolyLines               = dll.MustPrep("DrawPolyLines", &ffi.TypeVoid, &typeVector2, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawPolyLinesEx             = dll.MustPrep("DrawPolyLinesEx", &ffi.TypeVoid, &typeVector2, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -1285,4 +1334,229 @@ func GetGesturePinchAngle() float32 {
 	var ret float32
 	getGesturePinchAngle.Call(&ret)
 	return ret
+}
+
+// SetShapesTexture - Set texture and rectangle to be used on shapes drawing
+func SetShapesTexture(texture Texture2D, source Rectangle) {
+	setShapesTexture.Call(nil, &texture, &source)
+}
+
+// GetShapesTexture - Get texture that is used for shapes drawing
+func GetShapesTexture() Texture2D {
+	var ret Texture2D
+	getShapesTexture.Call(&ret)
+	return ret
+}
+
+// GetShapesTextureRectangle - Get texture source rectangle that is used for shapes drawing
+func GetShapesTextureRectangle() Rectangle {
+	var ret Rectangle
+	getShapesTextureRectangle.Call(&ret)
+	return ret
+}
+
+// DrawPixel - Draw a pixel
+func DrawPixel(posX int32, posY int32, col color.RGBA) {
+	drawPixel.Call(nil, &posX, &posY, &col)
+}
+
+// DrawPixelV - Draw a pixel (Vector version)
+func DrawPixelV(position Vector2, col color.RGBA) {
+	drawPixelV.Call(nil, &position, &col)
+}
+
+// DrawLine - Draw a line
+func DrawLine(startPosX int32, startPosY int32, endPosX int32, endPosY int32, col color.RGBA) {
+	drawLine.Call(nil, &startPosX, &startPosY, &endPosX, &endPosY, &col)
+}
+
+// DrawLineV - Draw a line (using gl lines)
+func DrawLineV(startPos Vector2, endPos Vector2, col color.RGBA) {
+	drawLineV.Call(nil, &startPos, &endPos, &col)
+}
+
+// DrawLineEx - Draw a line (using triangles/quads)
+func DrawLineEx(startPos Vector2, endPos Vector2, thick float32, col color.RGBA) {
+	drawLineEx.Call(nil, &startPos, &endPos, &thick, &col)
+}
+
+// DrawLineStrip - Draw lines sequence (using gl lines)
+func DrawLineStrip(points []Vector2, col color.RGBA) {
+	pointCount := int32(len(points))
+	pointsPtr := unsafe.SliceData(points)
+	drawLineStrip.Call(nil, &pointsPtr, &pointCount, &col)
+}
+
+// DrawLineBezier - Draw line segment cubic-bezier in-out interpolation
+func DrawLineBezier(startPos Vector2, endPos Vector2, thick float32, col color.RGBA) {
+	drawLineBezier.Call(nil, &startPos, &endPos, &thick, &col)
+}
+
+// DrawLineDashed - Draw a dashed line
+func DrawLineDashed(startPos, endPos Vector2, dashSize, spaceSize int32, col color.RGBA) {
+	drawLineDashed.Call(nil, &startPos, &endPos, &dashSize, &spaceSize, &col)
+}
+
+// DrawCircle - Draw a color-filled circle
+func DrawCircle(centerX int32, centerY int32, radius float32, col color.RGBA) {
+	drawCircle.Call(nil, &centerX, &centerY, &radius, &col)
+}
+
+// DrawCircleV - Draw a color-filled circle (Vector version)
+func DrawCircleV(center Vector2, radius float32, col color.RGBA) {
+	drawCircleV.Call(nil, &center, &radius, &col)
+}
+
+// DrawCircleGradient - Draw a gradient-filled circle
+func DrawCircleGradient(center Vector2, radius float32, inner color.RGBA, outer color.RGBA) {
+	drawCircleGradient.Call(nil, &center, &radius, &inner, &outer)
+}
+
+// DrawCircleSector - Draw a piece of a circle
+func DrawCircleSector(center Vector2, radius float32, startAngle float32, endAngle float32, segments int32, col color.RGBA) {
+	drawCircleSector.Call(nil, &center, &radius, &startAngle, &endAngle, &segments, &col)
+}
+
+// DrawCircleSectorLines - Draw circle sector outline
+func DrawCircleSectorLines(center Vector2, radius float32, startAngle float32, endAngle float32, segments int32, col color.RGBA) {
+	drawCircleSectorLines.Call(nil, &center, &radius, &startAngle, &endAngle, &segments, &col)
+}
+
+// DrawCircleLines - Draw circle outline
+func DrawCircleLines(centerX int32, centerY int32, radius float32, col color.RGBA) {
+	drawCircleLines.Call(nil, &centerX, &centerY, &radius, &col)
+}
+
+// DrawCircleLinesV - Draw circle outline (Vector version)
+func DrawCircleLinesV(center Vector2, radius float32, col color.RGBA) {
+	drawCircleLinesV.Call(nil, &center, &radius, &col)
+}
+
+// DrawEllipse - Draw ellipse
+func DrawEllipse(centerX int32, centerY int32, radiusH float32, radiusV float32, col color.RGBA) {
+	drawEllipse.Call(nil, &centerX, &centerY, &radiusH, &radiusV, &col)
+}
+
+// DrawEllipseV - Draw ellipse (Vector version)
+func DrawEllipseV(center Vector2, radiusH float32, radiusV float32, col color.RGBA) {
+	drawEllipseV.Call(nil, &center, &radiusH, &radiusV, &col)
+}
+
+// DrawEllipseLines - Draw ellipse outline
+func DrawEllipseLines(centerX int32, centerY int32, radiusH float32, radiusV float32, col color.RGBA) {
+	drawEllipseLines.Call(nil, &centerX, &centerY, &radiusH, &radiusV, &col)
+}
+
+// DrawEllipseLinesV - Draw ellipse outline (Vector version)
+func DrawEllipseLinesV(center Vector2, radiusH float32, radiusV float32, col color.RGBA) {
+	drawEllipseLinesV.Call(nil, &center, &radiusH, &radiusV, &col)
+}
+
+// DrawRing - Draw ring
+func DrawRing(center Vector2, innerRadius float32, outerRadius float32, startAngle float32, endAngle float32, segments int32, col color.RGBA) {
+	drawRing.Call(nil, &center, &innerRadius, &outerRadius, &startAngle, &endAngle, &segments, &col)
+}
+
+// DrawRingLines - Draw ring outline
+func DrawRingLines(center Vector2, innerRadius float32, outerRadius float32, startAngle float32, endAngle float32, segments int32, col color.RGBA) {
+	drawRingLines.Call(nil, &center, &innerRadius, &outerRadius, &startAngle, &endAngle, &segments, &col)
+}
+
+// DrawRectangle - Draw a color-filled rectangle
+func DrawRectangle(posX int32, posY int32, width int32, height int32, col color.RGBA) {
+	drawRectangle.Call(nil, &posX, &posY, &width, &height, &col)
+}
+
+// DrawRectangleV - Draw a color-filled rectangle (Vector version)
+func DrawRectangleV(position Vector2, size Vector2, col color.RGBA) {
+	drawRectangleV.Call(nil, &position, &size, &col)
+}
+
+// DrawRectangleRec - Draw a color-filled rectangle
+func DrawRectangleRec(rec Rectangle, col color.RGBA) {
+	drawRectangleRec.Call(nil, &rec, &col)
+}
+
+// DrawRectanglePro - Draw a color-filled rectangle with pro parameters
+func DrawRectanglePro(rec Rectangle, origin Vector2, rotation float32, col color.RGBA) {
+	drawRectanglePro.Call(nil, &rec, &origin, &rotation, &col)
+}
+
+// DrawRectangleGradientV - Draw a vertical-gradient-filled rectangle
+func DrawRectangleGradientV(posX int32, posY int32, width int32, height int32, top color.RGBA, bottom color.RGBA) {
+	drawRectangleGradientV.Call(nil, &posX, &posY, &width, &height, &top, &bottom)
+}
+
+// DrawRectangleGradientH - Draw a horizontal-gradient-filled rectangle
+func DrawRectangleGradientH(posX int32, posY int32, width int32, height int32, left color.RGBA, right color.RGBA) {
+	drawRectangleGradientH.Call(nil, &posX, &posY, &width, &height, &left, &right)
+}
+
+// DrawRectangleGradientEx - Draw a gradient-filled rectangle with custom vertex colors
+func DrawRectangleGradientEx(rec Rectangle, topLeft color.RGBA, bottomLeft color.RGBA, bottomRight, topRight color.RGBA) {
+	drawRectangleGradientEx.Call(nil, &rec, &topLeft, &bottomLeft, &bottomRight, &topRight)
+}
+
+// DrawRectangleLines - Draw rectangle outline
+func DrawRectangleLines(posX int32, posY int32, width int32, height int32, col color.RGBA) {
+	drawRectangleLines.Call(nil, &posX, &posY, &width, &height, &col)
+}
+
+// DrawRectangleLinesEx - Draw rectangle outline with extended parameters
+func DrawRectangleLinesEx(rec Rectangle, lineThick float32, col color.RGBA) {
+	drawRectangleLinesEx.Call(nil, &rec, &lineThick, &col)
+}
+
+// DrawRectangleRounded - Draw rectangle with rounded edges
+func DrawRectangleRounded(rec Rectangle, roundness float32, segments int32, col color.RGBA) {
+	drawRectangleRounded.Call(nil, &rec, &roundness, &segments, &col)
+}
+
+// DrawRectangleRoundedLines - Draw rectangle lines with rounded edges
+func DrawRectangleRoundedLines(rec Rectangle, roundness float32, segments int32, col color.RGBA) {
+	drawRectangleRoundedLines.Call(nil, &rec, &roundness, &segments, &col)
+}
+
+// DrawRectangleRoundedLinesEx - Draw rectangle with rounded edges outline
+func DrawRectangleRoundedLinesEx(rec Rectangle, roundness float32, segments int32, lineThick float32, col color.RGBA) {
+	drawRectangleRoundedLinesEx.Call(nil, &rec, &roundness, &segments, &lineThick, &col)
+}
+
+// DrawTriangle - Draw a color-filled triangle (vertex in counter-clockwise order!)
+func DrawTriangle(v1 Vector2, v2 Vector2, v3 Vector2, col color.RGBA) {
+	drawTriangle.Call(nil, &v1, &v2, &v3, &col)
+}
+
+// DrawTriangleLines - Draw triangle outline (vertex in counter-clockwise order!)
+func DrawTriangleLines(v1 Vector2, v2 Vector2, v3 Vector2, col color.RGBA) {
+	drawTriangleLines.Call(nil, &v1, &v2, &v3, &col)
+}
+
+// DrawTriangleFan - Draw a triangle fan defined by points (first vertex is the center)
+func DrawTriangleFan(points []Vector2, col color.RGBA) {
+	pointCount := int32(len(points))
+	pointsPtr := unsafe.SliceData(points)
+	drawTriangleFan.Call(nil, &pointsPtr, &pointCount, &col)
+}
+
+// DrawTriangleStrip - Draw a triangle strip defined by points
+func DrawTriangleStrip(points []Vector2, col color.RGBA) {
+	pointCount := int32(len(points))
+	pointsPtr := unsafe.SliceData(points)
+	drawTriangleStrip.Call(nil, &pointsPtr, &pointCount, &col)
+}
+
+// DrawPoly - Draw a regular polygon (Vector version)
+func DrawPoly(center Vector2, sides int32, radius float32, rotation float32, col color.RGBA) {
+	drawPoly.Call(nil, &center, &sides, &radius, &rotation, &col)
+}
+
+// DrawPolyLines - Draw a polygon outline of n sides
+func DrawPolyLines(center Vector2, sides int32, radius float32, rotation float32, col color.RGBA) {
+	drawPolyLines.Call(nil, &center, &sides, &radius, &rotation, &col)
+}
+
+// DrawPolyLinesEx - Draw a polygon outline of n sides with extended parameters
+func DrawPolyLinesEx(center Vector2, sides int32, radius float32, rotation float32, lineThick float32, col color.RGBA) {
+	drawPolyLinesEx.Call(nil, &center, &sides, &radius, &rotation, &lineThick, &col)
 }
