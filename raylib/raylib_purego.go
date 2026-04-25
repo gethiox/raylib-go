@@ -331,6 +331,18 @@ var (
 	unloadImage             = dll.MustPrep("UnloadImage", &ffi.TypeVoid, &typeImage)
 	exportImage             = dll.MustPrep("ExportImage", &ffi.TypeUint8, &typeImage, &ffi.TypePointer)
 	exportImageToMemory     = dll.MustPrep("ExportImageToMemory", &ffi.TypePointer, &typeImage, &ffi.TypePointer, &ffi.TypePointer)
+
+	// Image generation functions
+
+	genImageColor          = dll.MustPrep("GenImageColor", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	genImageGradientLinear = dll.MustPrep("GenImageGradientLinear", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor, &typeColor)
+	genImageGradientRadial = dll.MustPrep("GenImageGradientRadial", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat, &typeColor, &typeColor)
+	genImageGradientSquare = dll.MustPrep("GenImageGradientSquare", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat, &typeColor, &typeColor)
+	genImageChecked        = dll.MustPrep("GenImageChecked", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor, &typeColor)
+	genImageWhiteNoise     = dll.MustPrep("GenImageWhiteNoise", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat)
+	genImagePerlinNoise    = dll.MustPrep("GenImagePerlinNoise", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat)
+	genImageCellular       = dll.MustPrep("GenImageCellular", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+	genImageText           = dll.MustPrep("GenImageText", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -1881,4 +1893,76 @@ func ExportImageToMemory(image Image, fileType string) []byte {
 	result := make([]byte, fileSize)
 	copy(result, unsafe.Slice(ret, fileSize))
 	return result
+}
+
+// GenImageColor - Generate image: plain color
+func GenImageColor(width int, height int, col color.RGBA) *Image {
+	var ret Image
+	w, h := int32(width), int32(height)
+	genImageColor.Call(&ret, &w, &h, &col)
+	return &ret
+}
+
+// GenImageGradientLinear - Generate image: linear gradient, direction in degrees [0..360], 0=Vertical gradient
+func GenImageGradientLinear(width int, height int, direction int, start color.RGBA, end color.RGBA) *Image {
+	var ret Image
+	w, h, dir := int32(width), int32(height), int32(direction)
+	genImageGradientLinear.Call(&ret, &w, &h, &dir, &start, &end)
+	return &ret
+}
+
+// GenImageGradientRadial - Generate image: radial gradient
+func GenImageGradientRadial(width int, height int, density float32, inner color.RGBA, outer color.RGBA) *Image {
+	var ret Image
+	w, h := int32(width), int32(height)
+	genImageGradientRadial.Call(&ret, &w, &h, &density, &inner, &outer)
+	return &ret
+}
+
+// GenImageGradientSquare - Generate image: square gradient
+func GenImageGradientSquare(width int, height int, density float32, inner color.RGBA, outer color.RGBA) *Image {
+	var ret Image
+	w, h := int32(width), int32(height)
+	genImageGradientSquare.Call(&ret, &w, &h, &density, &inner, &outer)
+	return &ret
+}
+
+// GenImageChecked - Generate image: checked
+func GenImageChecked(width int, height int, checksX int, checksY int, col1 color.RGBA, col2 color.RGBA) *Image {
+	var ret Image
+	w, h, cX, cY := int32(width), int32(height), int32(checksX), int32(checksY)
+	genImageChecked.Call(&ret, &w, &h, &cX, &cY, &col1, &col2)
+	return &ret
+}
+
+// GenImageWhiteNoise - Generate image: white noise
+func GenImageWhiteNoise(width int, height int, factor float32) *Image {
+	var ret Image
+	w, h := int32(width), int32(height)
+	genImageWhiteNoise.Call(&ret, &w, &h, &factor)
+	return &ret
+}
+
+// GenImagePerlinNoise - Generate image: perlin noise
+func GenImagePerlinNoise(width, height, offsetX, offsetY int, scale float32) *Image {
+	var ret Image
+	w, h, oX, oY := int32(width), int32(height), int32(offsetX), int32(offsetY)
+	genImagePerlinNoise.Call(&ret, &w, &h, &oX, &oY, &scale)
+	return &ret
+}
+
+// GenImageCellular - Generate image: cellular algorithm, bigger tileSize means bigger cells
+func GenImageCellular(width int, height int, tileSize int) *Image {
+	var ret Image
+	w, h, tS := int32(width), int32(height), int32(tileSize)
+	genImageCellular.Call(&ret, &w, &h, &tS)
+	return &ret
+}
+
+// GenImageText - Generate image: grayscale image from text data
+func GenImageText(width int, height int, text string) *Image {
+	var ret Image
+	w, h, textPtr := int32(width), int32(height), convert.ToBytePtr(text)
+	genImageText.Call(&ret, &w, &h, &textPtr)
+	return &ret
 }
