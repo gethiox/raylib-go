@@ -343,6 +343,45 @@ var (
 	genImagePerlinNoise    = dll.MustPrep("GenImagePerlinNoise", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeFloat)
 	genImageCellular       = dll.MustPrep("GenImageCellular", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
 	genImageText           = dll.MustPrep("GenImageText", &typeImage, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer)
+
+	// Image manipulation functions
+
+	imageCopy              = dll.MustPrep("ImageCopy", &typeImage, &typeImage)
+	imageFromImage         = dll.MustPrep("ImageFromImage", &typeImage, &typeImage, &typeRectangle)
+	imageFromChannel       = dll.MustPrep("ImageFromChannel", &typeImage, &typeImage, &ffi.TypeSint32)
+	imageText              = dll.MustPrep("ImageText", &typeImage, &ffi.TypePointer, &ffi.TypeSint32, &typeColor)
+	imageTextEx            = dll.MustPrep("ImageTextEx", &typeImage, &typeFont, &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	imageFormat            = dll.MustPrep("ImageFormat", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
+	imageToPOT             = dll.MustPrep("ImageToPOT", &ffi.TypeVoid, &ffi.TypePointer, &typeColor)
+	imageCrop              = dll.MustPrep("ImageCrop", &ffi.TypeVoid, &ffi.TypePointer, &typeRectangle)
+	imageAlphaCrop         = dll.MustPrep("ImageAlphaCrop", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeFloat)
+	imageAlphaClear        = dll.MustPrep("ImageAlphaClear", &ffi.TypeVoid, &ffi.TypePointer, &typeColor, &ffi.TypeFloat)
+	imageAlphaMask         = dll.MustPrep("ImageAlphaMask", &ffi.TypeVoid, &ffi.TypePointer, &typeImage)
+	imageAlphaPremultiply  = dll.MustPrep("ImageAlphaPremultiply", &ffi.TypeVoid, &ffi.TypePointer)
+	imageBlurGaussian      = dll.MustPrep("ImageBlurGaussian", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
+	imageKernelConvolution = dll.MustPrep("ImageKernelConvolution", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32)
+	imageResize            = dll.MustPrep("ImageResize", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32)
+	imageResizeNN          = dll.MustPrep("ImageResizeNN", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32)
+	imageResizeCanvas      = dll.MustPrep("ImageResizeCanvas", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	imageMipmaps           = dll.MustPrep("ImageMipmaps", &ffi.TypeVoid, &ffi.TypePointer)
+	imageDither            = dll.MustPrep("ImageDither", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+	imageFlipVertical      = dll.MustPrep("ImageFlipVertical", &ffi.TypeVoid, &ffi.TypePointer)
+	imageFlipHorizontal    = dll.MustPrep("ImageFlipHorizontal", &ffi.TypeVoid, &ffi.TypePointer)
+	imageRotate            = dll.MustPrep("ImageRotate", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
+	imageRotateCW          = dll.MustPrep("ImageRotateCW", &ffi.TypeVoid, &ffi.TypePointer)
+	imageRotateCCW         = dll.MustPrep("ImageRotateCCW", &ffi.TypeVoid, &ffi.TypePointer)
+	imageColorTint         = dll.MustPrep("ImageColorTint", &ffi.TypeVoid, &ffi.TypePointer, &typeColor)
+	imageColorInvert       = dll.MustPrep("ImageColorInvert", &ffi.TypeVoid, &ffi.TypePointer)
+	imageColorGrayscale    = dll.MustPrep("ImageColorGrayscale", &ffi.TypeVoid, &ffi.TypePointer)
+	imageColorContrast     = dll.MustPrep("ImageColorContrast", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeFloat)
+	imageColorBrightness   = dll.MustPrep("ImageColorBrightness", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
+	imageColorReplace      = dll.MustPrep("ImageColorReplace", &ffi.TypeVoid, &ffi.TypePointer, &typeColor, &typeColor)
+	loadImageColors        = dll.MustPrep("LoadImageColors", &ffi.TypePointer, &typeImage)
+	loadImagePalette       = dll.MustPrep("LoadImagePalette", &ffi.TypePointer, &typeImage, &ffi.TypeSint32, &ffi.TypePointer)
+	unloadImageColors      = dll.MustPrep("UnloadImageColors", &ffi.TypeVoid, &ffi.TypePointer)
+	unloadImagePalette     = dll.MustPrep("UnloadImagePalette", &ffi.TypeVoid, &ffi.TypePointer)
+	getImageAlphaBorder    = dll.MustPrep("GetImageAlphaBorder", &typeRectangle, &typeImage, &ffi.TypeFloat)
+	getImageColor          = dll.MustPrep("GetImageColor", &typeColor, &typeImage, &ffi.TypeSint32, &ffi.TypeSint32)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -1965,4 +2004,214 @@ func GenImageText(width int, height int, text string) *Image {
 	w, h, textPtr := int32(width), int32(height), convert.ToBytePtr(text)
 	genImageText.Call(&ret, &w, &h, &textPtr)
 	return &ret
+}
+
+// ImageCopy - Create an image duplicate (useful for transformations)
+func ImageCopy(image *Image) *Image {
+	var ret Image
+	imageCopy.Call(&ret, image)
+	return &ret
+}
+
+// ImageFromImage - Create an image from another image piece
+func ImageFromImage(image Image, rec Rectangle) Image {
+	var ret Image
+	imageFromImage.Call(&ret, &image, &rec)
+	return ret
+}
+
+// ImageFromChannel - Create an image from a selected channel of another image (GRAYSCALE)
+func ImageFromChannel(image Image, selectedChannel int32) Image {
+	var ret Image
+	imageFromChannel.Call(&ret, &image, &selectedChannel)
+	return ret
+}
+
+// ImageText - Create an image from text (default font)
+func ImageText(text string, fontSize int32, col color.RGBA) Image {
+	var ret Image
+	textPtr := convert.ToBytePtr(text)
+	imageText.Call(&ret, &textPtr, &fontSize, &col)
+	return ret
+}
+
+// ImageTextEx - Create an image from text (custom sprite font)
+func ImageTextEx(font Font, text string, fontSize float32, spacing float32, tint color.RGBA) Image {
+	var ret Image
+	textPtr := convert.ToBytePtr(text)
+	imageTextEx.Call(&ret, &font, &textPtr, &fontSize, &spacing, &tint)
+	return ret
+}
+
+// ImageFormat - Convert image data to desired format
+func ImageFormat(image *Image, newFormat PixelFormat) {
+	imageFormat.Call(nil, &image, &newFormat)
+}
+
+// ImageToPOT - Convert image to POT (power-of-two)
+func ImageToPOT(image *Image, fill color.RGBA) {
+	imageToPOT.Call(nil, &image, &fill)
+}
+
+// ImageCrop - Crop an image to a defined rectangle
+func ImageCrop(image *Image, crop Rectangle) {
+	imageCrop.Call(nil, &image, &crop)
+}
+
+// ImageAlphaCrop - Crop image depending on alpha value
+func ImageAlphaCrop(image *Image, threshold float32) {
+	imageAlphaCrop.Call(nil, &image, &threshold)
+}
+
+// ImageAlphaClear - Clear alpha channel to desired color
+func ImageAlphaClear(image *Image, col color.RGBA, threshold float32) {
+	imageAlphaClear.Call(nil, &image, &col, &threshold)
+}
+
+// ImageAlphaMask - Apply alpha mask to image
+func ImageAlphaMask(image *Image, alphaMask *Image) {
+	imageAlphaMask.Call(nil, &image, alphaMask)
+}
+
+// ImageAlphaPremultiply - Premultiply alpha channel
+func ImageAlphaPremultiply(image *Image) {
+	imageAlphaPremultiply.Call(nil, &image)
+}
+
+// ImageBlurGaussian - Apply Gaussian blur using a box blur approximation
+func ImageBlurGaussian(image *Image, blurSize int32) {
+	imageBlurGaussian.Call(nil, &image, &blurSize)
+}
+
+// ImageKernelConvolution - Apply custom square convolution kernel to image
+func ImageKernelConvolution(image *Image, kernel []float32) {
+	kernelPtr := unsafe.SliceData(kernel)
+	kernelSize := int32(len(kernel))
+	imageKernelConvolution.Call(nil, &image, &kernelPtr, &kernelSize)
+}
+
+// ImageResize - Resize image (Bicubic scaling algorithm)
+func ImageResize(image *Image, newWidth int32, newHeight int32) {
+	imageResize.Call(nil, &image, &newWidth, &newHeight)
+}
+
+// ImageResizeNN - Resize image (Nearest-Neighbor scaling algorithm)
+func ImageResizeNN(image *Image, newWidth int32, newHeight int32) {
+	imageResizeNN.Call(nil, &image, &newWidth, &newHeight)
+}
+
+// ImageResizeCanvas - Resize canvas and fill with color
+func ImageResizeCanvas(image *Image, newWidth int32, newHeight int32, offsetX int32, offsetY int32, fill color.RGBA) {
+	imageResizeCanvas.Call(nil, &image, &newWidth, &newHeight, &offsetX, &offsetY, &fill)
+}
+
+// ImageMipmaps - Compute all mipmap levels for a provided image
+func ImageMipmaps(image *Image) {
+	imageMipmaps.Call(nil, &image)
+}
+
+// ImageDither - Dither image data to 16bpp or lower (Floyd-Steinberg dithering)
+func ImageDither(image *Image, rBpp int32, gBpp int32, bBpp int32, aBpp int32) {
+	imageDither.Call(nil, &image, &rBpp, &gBpp, &bBpp, &aBpp)
+}
+
+// ImageFlipVertical - Flip image vertically
+func ImageFlipVertical(image *Image) {
+	imageFlipVertical.Call(nil, &image)
+}
+
+// ImageFlipHorizontal - Flip image horizontally
+func ImageFlipHorizontal(image *Image) {
+	imageFlipHorizontal.Call(nil, &image)
+}
+
+// ImageRotate - Rotate image by input angle in degrees (-359 to 359)
+func ImageRotate(image *Image, degrees int32) {
+	imageRotate.Call(nil, &image, &degrees)
+}
+
+// ImageRotateCW - Rotate image clockwise 90deg
+func ImageRotateCW(image *Image) {
+	imageRotateCW.Call(nil, &image)
+}
+
+// ImageRotateCCW - Rotate image counter-clockwise 90deg
+func ImageRotateCCW(image *Image) {
+	imageRotateCCW.Call(nil, &image)
+}
+
+// ImageColorTint - Modify image color: tint
+func ImageColorTint(image *Image, col color.RGBA) {
+	imageColorTint.Call(nil, &image, &col)
+}
+
+// ImageColorInvert - Modify image color: invert
+func ImageColorInvert(image *Image) {
+	imageColorInvert.Call(nil, &image)
+}
+
+// ImageColorGrayscale - Modify image color: grayscale
+func ImageColorGrayscale(image *Image) {
+	imageColorGrayscale.Call(nil, &image)
+}
+
+// ImageColorContrast - Modify image color: contrast (-100 to 100)
+func ImageColorContrast(image *Image, contrast float32) {
+	imageColorContrast.Call(nil, &image, &contrast)
+}
+
+// ImageColorBrightness - Modify image color: brightness (-255 to 255)
+func ImageColorBrightness(image *Image, brightness int32) {
+	imageColorBrightness.Call(nil, &image, &brightness)
+}
+
+// ImageColorReplace - Modify image color: replace color
+func ImageColorReplace(image *Image, col color.RGBA, replace color.RGBA) {
+	imageColorReplace.Call(nil, &image, &col, &replace)
+}
+
+// LoadImageColors - Load color data from image as a Color array (RGBA - 32bit)
+//
+// NOTE: Memory allocated should be freed using UnloadImageColors()
+func LoadImageColors(image *Image) []color.RGBA {
+	var ret *color.RGBA
+	loadImageColors.Call(&ret, image)
+	return unsafe.Slice(ret, image.Width*image.Height)
+}
+
+// LoadImagePalette - Load colors palette from image as a Color array (RGBA - 32bit)
+//
+// NOTE: Memory allocated should be freed using UnloadImagePalette()
+func LoadImagePalette(image Image, maxPaletteSize int32) []color.RGBA {
+	var colorCount int32
+	colorCountPtr := &colorCount
+	var ret *color.RGBA
+	loadImagePalette.Call(&ret, &image, &maxPaletteSize, &colorCountPtr)
+	return unsafe.Slice(ret, colorCount)
+}
+
+// UnloadImageColors - Unload color data loaded with LoadImageColors()
+func UnloadImageColors(colors []color.RGBA) {
+	colorsPtr := unsafe.SliceData(colors)
+	unloadImageColors.Call(nil, &colorsPtr)
+}
+
+// UnloadImagePalette - Unload colors palette loaded with LoadImagePalette()
+func UnloadImagePalette(colors []color.RGBA) {
+	colorsPtr := unsafe.SliceData(colors)
+	unloadImagePalette.Call(nil, &colorsPtr)
+}
+
+// GetImageAlphaBorder - Get image alpha border rectangle
+func GetImageAlphaBorder(image Image, threshold float32) Rectangle {
+	var ret Rectangle
+	getImageAlphaBorder.Call(&ret, &image, &threshold)
+	return ret
+}
+
+// GetImageColor - Get image pixel color at (x, y) position
+func GetImageColor(image Image, x int32, y int32) color.RGBA {
+	var ret color.RGBA
+	getImageColor.Call(&ret, &image, &x, &y)
+	return ret
 }
