@@ -468,6 +468,15 @@ var (
 	genImageFontAtlas  = dll.MustPrep("GenImageFontAtlas", &typeImage, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
 	unloadFontData     = dll.MustPrep("UnloadFontData", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32)
 	unloadFont         = dll.MustPrep("UnloadFont", &ffi.TypeVoid, &typeFont)
+
+	// Text drawing functions
+
+	drawFPS            = dll.MustPrep("DrawFPS", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32)
+	drawText           = dll.MustPrep("DrawText", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawTextEx         = dll.MustPrep("DrawTextEx", &ffi.TypeVoid, &typeFont, &ffi.TypePointer, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawTextPro        = dll.MustPrep("DrawTextPro", &ffi.TypeVoid, &typeFont, &ffi.TypePointer, &typeVector2, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawTextCodepoint  = dll.MustPrep("DrawTextCodepoint", &ffi.TypeVoid, &typeFont, &ffi.TypeSint32, &typeVector2, &ffi.TypeFloat, &typeColor)
+	drawTextCodepoints = dll.MustPrep("DrawTextCodepoints", &ffi.TypeVoid, &typeFont, &ffi.TypePointer, &ffi.TypeSint32, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -2754,4 +2763,39 @@ func UnloadFontData(glyphs []GlyphInfo) {
 // UnloadFont - Unload font from GPU memory (VRAM)
 func UnloadFont(font Font) {
 	unloadFont.Call(nil, &font)
+}
+
+// DrawFPS - Draw current FPS
+func DrawFPS(posX int32, posY int32) {
+	drawFPS.Call(nil, &posX, &posY)
+}
+
+// DrawText - Draw text (using default font)
+func DrawText(text string, posX int32, posY int32, fontSize int32, col color.RGBA) {
+	textPtr := convert.ToBytePtr(text)
+	drawText.Call(nil, &textPtr, &posX, &posY, &fontSize, &col)
+}
+
+// DrawTextEx - Draw text using font and additional parameters
+func DrawTextEx(font Font, text string, position Vector2, fontSize float32, spacing float32, tint color.RGBA) {
+	textPtr := convert.ToBytePtr(text)
+	drawTextEx.Call(nil, &font, &textPtr, &position, &fontSize, &spacing, &tint)
+}
+
+// DrawTextPro - Draw text using Font and pro parameters (rotation)
+func DrawTextPro(font Font, text string, position Vector2, origin Vector2, rotation float32, fontSize float32, spacing float32, tint color.RGBA) {
+	textPtr := convert.ToBytePtr(text)
+	drawTextPro.Call(nil, &font, &textPtr, &position, &origin, &rotation, &fontSize, &spacing, &tint)
+}
+
+// DrawTextCodepoint - Draw one character (codepoint)
+func DrawTextCodepoint(font Font, codepoint rune, position Vector2, fontSize float32, tint color.RGBA) {
+	drawTextCodepoint.Call(nil, &font, &codepoint, &position, &fontSize, &tint)
+}
+
+// DrawTextCodepoints - Draw multiple character (codepoint)
+func DrawTextCodepoints(font Font, codepoints []rune, position Vector2, fontSize float32, spacing float32, tint color.RGBA) {
+	codepointCount := int32(len(codepoints))
+	codepointsPtr := unsafe.SliceData(codepoints)
+	drawTextCodepoints.Call(nil, &font, &codepointsPtr, &codepointCount, &position, &fontSize, &spacing, &tint)
 }
