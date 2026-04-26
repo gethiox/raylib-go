@@ -100,3 +100,13 @@ var typeModelAnimation = ffi.NewType(
 	&ffi.TypePointer,
 )
 var typeRayCollision = ffi.NewType(&ffi.TypeUint8, &ffi.TypeFloat, &typeVector3, &typeVector3)
+var typeWave = ffi.NewType(
+	&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32,
+	&ffi.TypePointer,
+)
+var typeAudioStream = ffi.NewType(
+	&ffi.TypePointer, &ffi.TypePointer,
+	&ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32,
+)
+var typeSound = ffi.NewType(&typeAudioStream, &ffi.TypeUint32)
+var typeMusic = ffi.NewType(&typeAudioStream, &ffi.TypeUint32, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer)

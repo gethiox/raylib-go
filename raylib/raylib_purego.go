@@ -595,6 +595,56 @@ var (
 	isAudioDeviceReady = dll.MustPrep("IsAudioDeviceReady", &ffi.TypeUint8)
 	setMasterVolume    = dll.MustPrep("SetMasterVolume", &ffi.TypeVoid, &ffi.TypeFloat)
 	getMasterVolume    = dll.MustPrep("GetMasterVolume", &ffi.TypeFloat)
+
+	// Wave/Sound loading/unloading functions
+
+	loadWave           = dll.MustPrep("LoadWave", &typeWave, &ffi.TypePointer)
+	loadWaveFromMemory = dll.MustPrep("LoadWaveFromMemory", &typeWave, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32)
+	isWaveValid        = dll.MustPrep("IsWaveValid", &ffi.TypeUint8, &typeWave)
+	loadSound          = dll.MustPrep("LoadSound", &typeSound, &ffi.TypePointer)
+	loadSoundFromWave  = dll.MustPrep("LoadSoundFromWave", &typeSound, &typeWave)
+	loadSoundAlias     = dll.MustPrep("LoadSoundAlias", &typeSound, &typeSound)
+	isSoundValid       = dll.MustPrep("IsSoundValid", &ffi.TypeUint8, &typeSound)
+	updateSound        = dll.MustPrep("UpdateSound", &ffi.TypeVoid, &typeSound, &ffi.TypePointer, &ffi.TypeSint32)
+	unloadWave         = dll.MustPrep("UnloadWave", &ffi.TypeVoid, &typeWave)
+	unloadSound        = dll.MustPrep("UnloadSound", &ffi.TypeVoid, &typeSound)
+	unloadSoundAlias   = dll.MustPrep("UnloadSoundAlias", &ffi.TypeVoid, &typeSound)
+	exportWave         = dll.MustPrep("ExportWave", &ffi.TypeUint8, &typeWave, &ffi.TypePointer)
+
+	// Wave/Sound management functions
+
+	playSound         = dll.MustPrep("PlaySound", &ffi.TypeVoid, &typeSound)
+	stopSound         = dll.MustPrep("StopSound", &ffi.TypeVoid, &typeSound)
+	pauseSound        = dll.MustPrep("PauseSound", &ffi.TypeVoid, &typeSound)
+	resumeSound       = dll.MustPrep("ResumeSound", &ffi.TypeVoid, &typeSound)
+	isSoundPlaying    = dll.MustPrep("IsSoundPlaying", &ffi.TypeUint8, &typeSound)
+	setSoundVolume    = dll.MustPrep("SetSoundVolume", &ffi.TypeVoid, &typeSound, &ffi.TypeFloat)
+	setSoundPitch     = dll.MustPrep("SetSoundPitch", &ffi.TypeVoid, &typeSound, &ffi.TypeFloat)
+	setSoundPan       = dll.MustPrep("SetSoundPan", &ffi.TypeVoid, &typeSound, &ffi.TypeFloat)
+	waveCopy          = dll.MustPrep("WaveCopy", &typeWave, &typeWave)
+	waveCrop          = dll.MustPrep("WaveCrop", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32)
+	waveFormat        = dll.MustPrep("WaveFormat", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+	loadWaveSamples   = dll.MustPrep("LoadWaveSamples", &ffi.TypePointer, &typeWave)
+	unloadWaveSamples = dll.MustPrep("UnloadWaveSamples", &ffi.TypeVoid, &ffi.TypePointer)
+
+	// Music management functions
+
+	loadMusicStream           = dll.MustPrep("LoadMusicStream", &typeMusic, &ffi.TypePointer)
+	loadMusicStreamFromMemory = dll.MustPrep("LoadMusicStreamFromMemory", &typeMusic, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32)
+	isMusicValid              = dll.MustPrep("IsMusicValid", &ffi.TypeUint8, &typeMusic)
+	unloadMusicStream         = dll.MustPrep("UnloadMusicStream", &ffi.TypeVoid, &typeMusic)
+	playMusicStream           = dll.MustPrep("PlayMusicStream", &ffi.TypeVoid, &typeMusic)
+	isMusicStreamPlaying      = dll.MustPrep("IsMusicStreamPlaying", &ffi.TypeUint8, &typeMusic)
+	updateMusicStream         = dll.MustPrep("UpdateMusicStream", &ffi.TypeVoid, &typeMusic)
+	stopMusicStream           = dll.MustPrep("StopMusicStream", &ffi.TypeVoid, &typeMusic)
+	pauseMusicStream          = dll.MustPrep("PauseMusicStream", &ffi.TypeVoid, &typeMusic)
+	resumeMusicStream         = dll.MustPrep("ResumeMusicStream", &ffi.TypeVoid, &typeMusic)
+	seekMusicStream           = dll.MustPrep("SeekMusicStream", &ffi.TypeVoid, &typeMusic, &ffi.TypeFloat)
+	setMusicVolume            = dll.MustPrep("SetMusicVolume", &ffi.TypeVoid, &typeMusic, &ffi.TypeFloat)
+	setMusicPitch             = dll.MustPrep("SetMusicPitch", &ffi.TypeVoid, &typeMusic, &ffi.TypeFloat)
+	setMusicPan               = dll.MustPrep("SetMusicPan", &ffi.TypeVoid, &typeMusic, &ffi.TypeFloat)
+	getMusicTimeLength        = dll.MustPrep("GetMusicTimeLength", &ffi.TypeFloat, &typeMusic)
+	getMusicTimePlayed        = dll.MustPrep("GetMusicTimePlayed", &ffi.TypeFloat, &typeMusic)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -3451,5 +3501,254 @@ func SetMasterVolume(volume float32) {
 func GetMasterVolume() float32 {
 	var ret float32
 	getMasterVolume.Call(&ret)
+	return ret
+}
+
+// LoadWave - Load wave data from file
+func LoadWave(fileName string) Wave {
+	fileNamePtr := convert.ToBytePtr(fileName)
+	var ret Wave
+	loadWave.Call(&ret, &fileNamePtr)
+	return ret
+}
+
+// LoadWaveFromMemory - Load wave from memory buffer, fileType refers to extension: i.e. '.wav'
+func LoadWaveFromMemory(fileType string, fileData []byte, dataSize int32) Wave {
+	var ret Wave
+	fileTypePtr := convert.ToBytePtr(fileType)
+	fileDataPtr := unsafe.SliceData(fileData)
+	loadWaveFromMemory.Call(&ret, &fileTypePtr, &fileDataPtr, &dataSize)
+	return ret
+}
+
+// IsWaveValid - Checks if wave data is valid (data loaded and parameters)
+func IsWaveValid(wave Wave) bool {
+	var ret ffi.Arg
+	isWaveValid.Call(&ret, &wave)
+	return ret.Bool()
+}
+
+// LoadSound - Load sound from file
+func LoadSound(fileName string) Sound {
+	fileNamePtr := convert.ToBytePtr(fileName)
+	var ret Sound
+	loadSound.Call(&ret, &fileNamePtr)
+	return ret
+}
+
+// LoadSoundFromWave - Load sound from wave data
+func LoadSoundFromWave(wave Wave) Sound {
+	var ret Sound
+	loadSoundFromWave.Call(&ret, &wave)
+	return ret
+}
+
+// LoadSoundAlias - Create a new sound that shares the same sample data as the source sound, does not own the sound data
+func LoadSoundAlias(source Sound) Sound {
+	var ret Sound
+	loadSoundAlias.Call(&ret, &source)
+	return ret
+}
+
+// IsSoundValid - Checks if a sound is valid (data loaded and buffers initialized)
+func IsSoundValid(sound Sound) bool {
+	var ret ffi.Arg
+	isSoundValid.Call(&ret, &sound)
+	return ret.Bool()
+}
+
+// UpdateSound - Update sound buffer with new data (default data format: 32 bit float, stereo)
+func UpdateSound(sound Sound, data []byte, sampleCount int32) {
+	dataPtr := unsafe.SliceData(data)
+	updateSound.Call(nil, &sound, &dataPtr, &sampleCount)
+}
+
+// UnloadWave - Unload wave data
+func UnloadWave(wave Wave) {
+	unloadWave.Call(nil, &wave)
+}
+
+// UnloadSound - Unload sound
+func UnloadSound(sound Sound) {
+	unloadSound.Call(nil, &sound)
+}
+
+// UnloadSoundAlias - Unload a sound alias (does not deallocate sample data)
+func UnloadSoundAlias(alias Sound) {
+	unloadSoundAlias.Call(nil, &alias)
+}
+
+// ExportWave - Export wave data to file, returns true on success
+func ExportWave(wave Wave, fileName string) bool {
+	fileNamePtr := convert.ToBytePtr(fileName)
+	var ret ffi.Arg
+	exportWave.Call(&ret, &wave, &fileNamePtr)
+	return ret.Bool()
+}
+
+// PlaySound - Play a sound
+func PlaySound(sound Sound) {
+	playSound.Call(nil, &sound)
+}
+
+// StopSound - Stop playing a sound
+func StopSound(sound Sound) {
+	stopSound.Call(nil, &sound)
+}
+
+// PauseSound - Pause a sound
+func PauseSound(sound Sound) {
+	pauseSound.Call(nil, &sound)
+}
+
+// ResumeSound - Resume a paused sound
+func ResumeSound(sound Sound) {
+	resumeSound.Call(nil, &sound)
+}
+
+// IsSoundPlaying - Check if a sound is currently playing
+func IsSoundPlaying(sound Sound) bool {
+	var ret ffi.Arg
+	isSoundPlaying.Call(&ret, &sound)
+	return ret.Bool()
+}
+
+// SetSoundVolume - Set volume for a sound (1.0 is max level)
+func SetSoundVolume(sound Sound, volume float32) {
+	setSoundVolume.Call(nil, &sound, &volume)
+}
+
+// SetSoundPitch - Set pitch for a sound (1.0 is base level)
+func SetSoundPitch(sound Sound, pitch float32) {
+	setSoundPitch.Call(nil, &sound, &pitch)
+}
+
+// SetSoundPan - Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
+func SetSoundPan(sound Sound, pan float32) {
+	setSoundPan.Call(nil, &sound, &pan)
+}
+
+// WaveCopy - Copy a wave to a new wave
+func WaveCopy(wave Wave) Wave {
+	var ret Wave
+	waveCopy.Call(&ret, &wave)
+	return ret
+}
+
+// WaveCrop - Crop a wave to defined frames range
+func WaveCrop(wave *Wave, initFrame int32, finalFrame int32) {
+	waveCrop.Call(nil, &wave, &initFrame, &finalFrame)
+}
+
+// WaveFormat - Convert wave data to desired format
+func WaveFormat(wave *Wave, sampleRate int32, sampleSize int32, channels int32) {
+	waveFormat.Call(nil, &wave, &sampleRate, &sampleRate, &channels)
+}
+
+// LoadWaveSamples - Load samples data from wave as a 32bit float data array
+func LoadWaveSamples(wave Wave) []float32 {
+	var ret *float32
+	loadWaveSamples.Call(&ret, &wave)
+	return unsafe.Slice(ret, wave.FrameCount*wave.Channels)
+}
+
+// UnloadWaveSamples - Unload samples data loaded with LoadWaveSamples()
+func UnloadWaveSamples(samples []float32) {
+	samplesPtr := unsafe.SliceData(samples)
+	unloadWaveSamples.Call(nil, &samplesPtr)
+}
+
+// LoadMusicStream - Load music stream from file
+func LoadMusicStream(fileName string) Music {
+	fileNamePtr := convert.ToBytePtr(fileName)
+	var ret Music
+	loadMusicStream.Call(&ret, &fileNamePtr)
+	return ret
+}
+
+// LoadMusicStreamFromMemory - Load music stream from data
+func LoadMusicStreamFromMemory(fileType string, data []byte, dataSize int32) Music {
+	var ret Music
+	fileTypePtr := convert.ToBytePtr(fileType)
+	dataPtr := unsafe.SliceData(data)
+	loadMusicStreamFromMemory.Call(&ret, &fileTypePtr, &dataPtr, &dataSize)
+	return ret
+}
+
+// IsMusicValid - Checks if a music stream is valid (context and buffers initialized)
+func IsMusicValid(music Music) bool {
+	var ret ffi.Arg
+	isMusicValid.Call(&ret, &music)
+	return ret.Bool()
+}
+
+// UnloadMusicStream - Unload music stream
+func UnloadMusicStream(music Music) {
+	unloadMusicStream.Call(nil, &music)
+}
+
+// PlayMusicStream - Start music playing
+func PlayMusicStream(music Music) {
+	playMusicStream.Call(nil, &music)
+}
+
+// IsMusicStreamPlaying - Check if music is playing
+func IsMusicStreamPlaying(music Music) bool {
+	var ret ffi.Arg
+	isMusicStreamPlaying.Call(&ret, &music)
+	return ret.Bool()
+}
+
+// UpdateMusicStream - Updates buffers for music streaming
+func UpdateMusicStream(music Music) {
+	updateMusicStream.Call(nil, &music)
+}
+
+// StopMusicStream - Stop music playing
+func StopMusicStream(music Music) {
+	stopMusicStream.Call(nil, &music)
+}
+
+// PauseMusicStream - Pause music playing
+func PauseMusicStream(music Music) {
+	pauseMusicStream.Call(nil, &music)
+}
+
+// ResumeMusicStream - Resume playing paused music
+func ResumeMusicStream(music Music) {
+	resumeMusicStream.Call(nil, &music)
+}
+
+// SeekMusicStream - Seek music to a position (in seconds)
+func SeekMusicStream(music Music, position float32) {
+	seekMusicStream.Call(nil, &music, &position)
+}
+
+// SetMusicVolume - Set volume for music (1.0 is max level)
+func SetMusicVolume(music Music, volume float32) {
+	setMusicVolume.Call(nil, &music, &volume)
+}
+
+// SetMusicPitch - Set pitch for a music (1.0 is base level)
+func SetMusicPitch(music Music, pitch float32) {
+	setMusicPitch.Call(nil, &music, &pitch)
+}
+
+// SetMusicPan - Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
+func SetMusicPan(music Music, pan float32) {
+	setMusicPan.Call(nil, &music, &pan)
+}
+
+// GetMusicTimeLength - Get music time length (in seconds)
+func GetMusicTimeLength(music Music) float32 {
+	var ret float32
+	getMusicTimeLength.Call(&ret, &music)
+	return ret
+}
+
+// GetMusicTimePlayed - Get current music time played (in seconds)
+func GetMusicTimePlayed(music Music) float32 {
+	var ret float32
+	getMusicTimePlayed.Call(&ret, &music)
 	return ret
 }
