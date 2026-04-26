@@ -477,6 +477,16 @@ var (
 	drawTextPro        = dll.MustPrep("DrawTextPro", &ffi.TypeVoid, &typeFont, &ffi.TypePointer, &typeVector2, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
 	drawTextCodepoint  = dll.MustPrep("DrawTextCodepoint", &ffi.TypeVoid, &typeFont, &ffi.TypeSint32, &typeVector2, &ffi.TypeFloat, &typeColor)
 	drawTextCodepoints = dll.MustPrep("DrawTextCodepoints", &ffi.TypeVoid, &typeFont, &ffi.TypePointer, &ffi.TypeSint32, &typeVector2, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+
+	// Text font info functions
+
+	setTextLineSpacing    = dll.MustPrep("SetTextLineSpacing", &ffi.TypeVoid, &ffi.TypeSint32)
+	measureText           = dll.MustPrep("MeasureText", &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32)
+	measureTextEx         = dll.MustPrep("MeasureTextEx", &typeVector2, &typeFont, &ffi.TypePointer, &ffi.TypeFloat, &ffi.TypeFloat)
+	measureTextCodepoints = dll.MustPrep("MeasureTextCodepoints", &typeVector2, &typeFont, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeFloat, &ffi.TypeFloat)
+	getGlyphIndex         = dll.MustPrep("GetGlyphIndex", &ffi.TypeSint32, &typeFont, &ffi.TypeSint32)
+	getGlyphInfo          = dll.MustPrep("GetGlyphInfo", &typeGlyphInfo, &typeFont, &ffi.TypeSint32)
+	getGlyphAtlasRec      = dll.MustPrep("GetGlyphAtlasRec", &typeRectangle, &typeFont, &ffi.TypeSint32)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -2798,4 +2808,56 @@ func DrawTextCodepoints(font Font, codepoints []rune, position Vector2, fontSize
 	codepointCount := int32(len(codepoints))
 	codepointsPtr := unsafe.SliceData(codepoints)
 	drawTextCodepoints.Call(nil, &font, &codepointsPtr, &codepointCount, &position, &fontSize, &spacing, &tint)
+}
+
+// SetTextLineSpacing - Set vertical line spacing when drawing with line-breaks
+func SetTextLineSpacing(spacing int) {
+	s := int32(spacing)
+	setTextLineSpacing.Call(nil, &s)
+}
+
+// MeasureText - Measure string width for default font
+func MeasureText(text string, fontSize int32) int32 {
+	textPtr := convert.ToBytePtr(text)
+	var ret ffi.Arg
+	measureText.Call(&ret, &textPtr, &fontSize)
+	return int32(ret)
+}
+
+// MeasureTextEx - Measure string size for Font
+func MeasureTextEx(font Font, text string, fontSize float32, spacing float32) Vector2 {
+	textPtr := convert.ToBytePtr(text)
+	var ret Vector2
+	measureTextEx.Call(&ret, &font, &textPtr, &fontSize, &spacing)
+	return ret
+}
+
+// MeasureTextCodepoints - Measure string size for an existing array of codepoints for Font
+func MeasureTextCodepoints(font Font, codepoints []rune, fontSize float32, spacing float32) Vector2 {
+	length := int32(len(codepoints))
+	codepointsPtr := unsafe.SliceData(codepoints)
+	var ret Vector2
+	measureTextCodepoints.Call(&ret, &font, &codepointsPtr, &length, &fontSize, &spacing)
+	return ret
+}
+
+// GetGlyphIndex - Get glyph index position in font for a codepoint (unicode character), fallback to '?' if not found
+func GetGlyphIndex(font Font, codepoint rune) int32 {
+	var ret ffi.Arg
+	getGlyphIndex.Call(&ret, &font, &codepoint)
+	return int32(ret)
+}
+
+// GetGlyphInfo - Get glyph font info data for a codepoint (unicode character), fallback to '?' if not found
+func GetGlyphInfo(font Font, codepoint rune) GlyphInfo {
+	var ret GlyphInfo
+	getGlyphInfo.Call(&ret, &font, &codepoint)
+	return ret
+}
+
+// GetGlyphAtlasRec - Get glyph rectangle in font atlas for a codepoint (unicode character), fallback to '?' if not found
+func GetGlyphAtlasRec(font Font, codepoint rune) Rectangle {
+	var ret Rectangle
+	getGlyphAtlasRec.Call(&ret, &font, &codepoint)
+	return ret
 }

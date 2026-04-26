@@ -61,3 +61,10 @@ var typeNPatchInfo = ffi.NewType(
 	&ffi.TypeSint32,
 	&ffi.TypeSint32,
 )
+var typeGlyphInfo = ffi.NewType(
+	&ffi.TypeSint32,
+	&ffi.TypeSint32,
+	&ffi.TypeSint32,
+	&ffi.TypeSint32,
+	&typeImage,
+)
