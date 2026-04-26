@@ -491,6 +491,30 @@ var (
 	getGlyphIndex         = dll.MustPrep("GetGlyphIndex", &ffi.TypeSint32, &typeFont, &ffi.TypeSint32)
 	getGlyphInfo          = dll.MustPrep("GetGlyphInfo", &typeGlyphInfo, &typeFont, &ffi.TypeSint32)
 	getGlyphAtlasRec      = dll.MustPrep("GetGlyphAtlasRec", &typeRectangle, &typeFont, &ffi.TypeSint32)
+
+	// Basic geometric 3D shapes drawing functions
+
+	drawLine3D          = dll.MustPrep("DrawLine3D", &ffi.TypeVoid, &typeVector3, &typeVector3, &typeColor)
+	drawPoint3D         = dll.MustPrep("DrawPoint3D", &ffi.TypeVoid, &typeVector3, &typeColor)
+	drawCircle3D        = dll.MustPrep("DrawCircle3D", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &typeVector3, &ffi.TypeFloat, &typeColor)
+	drawTriangle3D      = dll.MustPrep("DrawTriangle3D", &ffi.TypeVoid, &typeVector3, &typeVector3, &typeVector3, &typeColor)
+	drawTriangleStrip3D = dll.MustPrep("DrawTriangleStrip3D", &ffi.TypeVoid, &ffi.TypePointer, &ffi.TypeSint32, &typeColor)
+	drawCube            = dll.MustPrep("DrawCube", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawCubeV           = dll.MustPrep("DrawCubeV", &ffi.TypeVoid, &typeVector3, &typeVector3, &typeColor)
+	drawCubeWires       = dll.MustPrep("DrawCubeWires", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &typeColor)
+	drawCubeWiresV      = dll.MustPrep("DrawCubeWiresV", &ffi.TypeVoid, &typeVector3, &typeVector3, &typeColor)
+	drawSphere          = dll.MustPrep("DrawSphere", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &typeColor)
+	drawSphereEx        = dll.MustPrep("DrawSphereEx", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawSphereWires     = dll.MustPrep("DrawSphereWires", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawCylinder        = dll.MustPrep("DrawCylinder", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawCylinderEx      = dll.MustPrep("DrawCylinderEx", &ffi.TypeVoid, &typeVector3, &typeVector3, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawCylinderWires   = dll.MustPrep("DrawCylinderWires", &ffi.TypeVoid, &typeVector3, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawCylinderWiresEx = dll.MustPrep("DrawCylinderWiresEx", &ffi.TypeVoid, &typeVector3, &typeVector3, &ffi.TypeFloat, &ffi.TypeFloat, &ffi.TypeSint32, &typeColor)
+	drawCapsule         = dll.MustPrep("DrawCapsule", &ffi.TypeVoid, &typeVector3, &typeVector3, &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawCapsuleWires    = dll.MustPrep("DrawCapsuleWires", &ffi.TypeVoid, &typeVector3, &typeVector3, &ffi.TypeFloat, &ffi.TypeSint32, &ffi.TypeSint32, &typeColor)
+	drawPlane           = dll.MustPrep("DrawPlane", &ffi.TypeVoid, &typeVector3, &typeVector2, &typeColor)
+	drawRay             = dll.MustPrep("DrawRay", &ffi.TypeVoid, &typeRay, &typeColor)
+	drawGrid            = dll.MustPrep("DrawGrid", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeFloat)
 )
 
 // InitWindow - Initialize window and OpenGL context
@@ -2873,4 +2897,111 @@ func GetGlyphAtlasRec(font Font, codepoint rune) Rectangle {
 	var ret Rectangle
 	getGlyphAtlasRec.Call(&ret, &font, &codepoint)
 	return ret
+}
+
+// DrawLine3D - Draw a line in 3D world space
+func DrawLine3D(startPos Vector3, endPos Vector3, col color.RGBA) {
+	drawLine3D.Call(nil, &startPos, &endPos, &col)
+}
+
+// DrawPoint3D - Draw a point in 3D space, actually a small line
+func DrawPoint3D(position Vector3, col color.RGBA) {
+	drawPoint3D.Call(nil, &position, &col)
+}
+
+// DrawCircle3D - Draw a circle in 3D world space
+func DrawCircle3D(center Vector3, radius float32, rotationAxis Vector3, rotationAngle float32, col color.RGBA) {
+	drawCircle3D.Call(nil, &center, &radius, &rotationAxis, &rotationAngle, &col)
+}
+
+// DrawTriangle3D - Draw a color-filled triangle (vertex in counter-clockwise order!)
+func DrawTriangle3D(v1 Vector3, v2 Vector3, v3 Vector3, col color.RGBA) {
+	drawTriangle3D.Call(nil, &v1, &v2, &v3, &col)
+}
+
+// DrawTriangleStrip3D - Draw a triangle strip defined by points
+func DrawTriangleStrip3D(points []Vector3, col color.RGBA) {
+	pointCount := int32(len(points))
+	pointsPtr := unsafe.SliceData(points)
+	drawTriangleStrip3D.Call(nil, &pointsPtr, &pointCount, &col)
+}
+
+// DrawCube - Draw cube
+func DrawCube(position Vector3, width float32, height float32, length float32, col color.RGBA) {
+	drawCube.Call(nil, &position, &width, &height, &length, &col)
+}
+
+// DrawCubeV - Draw cube (Vector version)
+func DrawCubeV(position Vector3, size Vector3, col color.RGBA) {
+	drawCubeV.Call(nil, &position, &size, &col)
+}
+
+// DrawCubeWires - Draw cube wires
+func DrawCubeWires(position Vector3, width float32, height float32, length float32, col color.RGBA) {
+	drawCubeWires.Call(nil, &position, &width, &height, &length, &col)
+}
+
+// DrawCubeWiresV - Draw cube wires (Vector version)
+func DrawCubeWiresV(position Vector3, size Vector3, col color.RGBA) {
+	drawCubeWiresV.Call(nil, &position, &size, &col)
+}
+
+// DrawSphere - Draw sphere
+func DrawSphere(centerPos Vector3, radius float32, col color.RGBA) {
+	drawSphere.Call(nil, &centerPos, &radius, &col)
+}
+
+// DrawSphereEx - Draw sphere with extended parameters
+func DrawSphereEx(centerPos Vector3, radius float32, rings int32, slices int32, col color.RGBA) {
+	drawSphereEx.Call(nil, &centerPos, &radius, &rings, &slices, &col)
+}
+
+// DrawSphereWires - Draw sphere wires
+func DrawSphereWires(centerPos Vector3, radius float32, rings int32, slices int32, col color.RGBA) {
+	drawSphereWires.Call(nil, &centerPos, &radius, &rings, &slices, &col)
+}
+
+// DrawCylinder - Draw a cylinder/cone
+func DrawCylinder(position Vector3, radiusTop float32, radiusBottom float32, height float32, slices int32, col color.RGBA) {
+	drawCylinder.Call(nil, &position, &radiusTop, &radiusBottom, &height, &slices, &col)
+}
+
+// DrawCylinderEx - Draw a cylinder with base at startPos and top at endPos
+func DrawCylinderEx(startPos Vector3, endPos Vector3, startRadius float32, endRadius float32, sides int32, col color.RGBA) {
+	drawCylinderEx.Call(nil, &startPos, &endPos, &startRadius, &endRadius, &sides, &col)
+}
+
+// DrawCylinderWires - Draw a cylinder/cone wires
+func DrawCylinderWires(position Vector3, radiusTop float32, radiusBottom float32, height float32, slices int32, col color.RGBA) {
+	drawCylinderWires.Call(nil, &position, &radiusTop, &radiusBottom, &height, &slices, &col)
+}
+
+// DrawCylinderWiresEx - Draw a cylinder wires with base at startPos and top at endPos
+func DrawCylinderWiresEx(startPos Vector3, endPos Vector3, startRadius float32, endRadius float32, sides int32, col color.RGBA) {
+	drawCylinderWiresEx.Call(nil, &startPos, &endPos, &startRadius, &endRadius, &sides, &col)
+}
+
+// DrawCapsule - Draw a capsule with the center of its sphere caps at startPos and endPos
+func DrawCapsule(startPos Vector3, endPos Vector3, radius float32, slices int32, rings int32, col color.RGBA) {
+	drawCapsule.Call(nil, &startPos, &endPos, &radius, &slices, &rings, &col)
+}
+
+// DrawCapsuleWires - Draw capsule wireframe with the center of its sphere caps at startPos and endPos
+func DrawCapsuleWires(startPos Vector3, endPos Vector3, radius float32, slices int32, rings int32, col color.RGBA) {
+	drawCapsuleWires.Call(nil, &startPos, &endPos, &radius, &slices, &rings, &col)
+}
+
+// DrawPlane - Draw a plane XZ
+func DrawPlane(centerPos Vector3, size Vector2, col color.RGBA) {
+	drawPlane.Call(nil, &centerPos, &size, &col)
+}
+
+// DrawRay - Draw a ray line
+func DrawRay(ray Ray, col color.RGBA) {
+	drawRay.Call(nil, &ray, &col)
+}
+
+// DrawGrid - Draw a grid (centered at (0, 0, 0))
+func DrawGrid(slices int32, spacing float32) {
+	drawGrid.Call(nil, &slices, &spacing)
 }
