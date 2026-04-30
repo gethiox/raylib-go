@@ -110,3 +110,4 @@ var typeAudioStream = ffi.NewType(
 )
 var typeSound = ffi.NewType(&typeAudioStream, &ffi.TypeUint32)
 var typeMusic = ffi.NewType(&typeAudioStream, &ffi.TypeUint32, &ffi.TypeUint8, &ffi.TypeSint32, &ffi.TypePointer)
+var typeRenderBatch = ffi.NewType(&ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypePointer, &ffi.TypeSint32, &ffi.TypeFloat)

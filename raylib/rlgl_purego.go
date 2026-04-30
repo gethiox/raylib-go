@@ -126,6 +126,16 @@ var (
 	rlGetTextureIdDefault  = dll.MustPrep("rlGetTextureIdDefault", &ffi.TypeUint32)
 	rlGetShaderIdDefault   = dll.MustPrep("rlGetShaderIdDefault", &ffi.TypeUint32)
 	rlGetShaderLocsDefault = dll.MustPrep("rlGetShaderLocsDefault", &ffi.TypePointer)
+
+	// Render batch management
+
+	rlLoadRenderBatch       = dll.MustPrep("rlLoadRenderBatch", &typeRenderBatch, &ffi.TypeSint32, &ffi.TypeSint32)
+	rlUnloadRenderBatch     = dll.MustPrep("rlUnloadRenderBatch", &ffi.TypeVoid, &typeRenderBatch)
+	rlDrawRenderBatch       = dll.MustPrep("rlDrawRenderBatch", &ffi.TypeVoid, &ffi.TypePointer)
+	rlSetRenderBatchActive  = dll.MustPrep("rlSetRenderBatchActive", &ffi.TypeVoid, &ffi.TypePointer)
+	rlDrawRenderBatchActive = dll.MustPrep("rlDrawRenderBatchActive", &ffi.TypeVoid)
+	rlCheckRenderBatchLimit = dll.MustPrep("rlCheckRenderBatchLimit", &ffi.TypeUint8, &ffi.TypeSint32)
+	rlSetTexture            = dll.MustPrep("rlSetTexture", &ffi.TypeVoid, &ffi.TypeUint32)
 )
 
 // SetVertexAttribute - Set vertex attribute data configuration
@@ -621,4 +631,43 @@ func GetShaderLocsDefault() []int32 {
 	rlGetShaderLocsDefault.Call(&ret)
 	// the default value of RL_MAX_SHADER_LOCATIONS is 32
 	return unsafe.Slice(ret, 32)
+}
+
+// LoadRenderBatch - Load a render batch system
+func LoadRenderBatch(numBuffers int32, bufferElements int32) RenderBatch {
+	var ret RenderBatch
+	rlLoadRenderBatch.Call(&ret, &numBuffers, &bufferElements)
+	return ret
+}
+
+// UnloadRenderBatch - Unload render batch system
+func UnloadRenderBatch(batch RenderBatch) {
+	rlUnloadRenderBatch.Call(nil, &batch)
+}
+
+// DrawRenderBatch - Draw render batch data (Update->Draw->Reset)
+func DrawRenderBatch(batch *RenderBatch) {
+	rlDrawRenderBatch.Call(nil, &batch)
+}
+
+// rlSetRenderBatchActive - Set the active render batch for rlgl (NULL for default internal)
+func SetRenderBatchActive(batch *RenderBatch) {
+	rlSetRenderBatchActive.Call(nil, &batch)
+}
+
+// DrawRenderBatchActive - Update and draw internal render batch
+func DrawRenderBatchActive() {
+	rlDrawRenderBatchActive.Call(nil)
+}
+
+// CheckRenderBatchLimit - Check internal buffer overflow for a given number of vertex
+func CheckRenderBatchLimit(vCount int32) bool {
+	var ret ffi.Arg
+	rlCheckRenderBatchLimit.Call(&ret, &vCount)
+	return ret.Bool()
+}
+
+// SetTexture - Set current texture for render batch and check buffers limits
+func SetTexture(id uint32) {
+	rlSetTexture.Call(nil, &id)
 }
