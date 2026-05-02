@@ -153,6 +153,26 @@ var (
 	rlDrawVertexArrayElements          = dll.MustPrep("rlDrawVertexArrayElements", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer)
 	rlDrawVertexArrayInstanced         = dll.MustPrep("rlDrawVertexArrayInstanced", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
 	rlDrawVertexArrayElementsInstanced = dll.MustPrep("rlDrawVertexArrayElementsInstanced", &ffi.TypeVoid, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypePointer, &ffi.TypeSint32)
+
+	// Textures management
+
+	rlLoadTextureDepth = dll.MustPrep("rlLoadTextureDepth", &ffi.TypeUint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeUint8)
+
+	// Framebuffer management (fbo)
+
+	rlLoadFramebuffer     = dll.MustPrep("rlLoadFramebuffer", &ffi.TypeUint32)
+	rlFramebufferAttach   = dll.MustPrep("rlFramebufferAttach", &ffi.TypeVoid, &ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeSint32, &ffi.TypeSint32, &ffi.TypeSint32)
+	rlFramebufferComplete = dll.MustPrep("rlFramebufferComplete", &ffi.TypeUint8, &ffi.TypeUint32)
+	rlUnloadFramebuffer   = dll.MustPrep("rlUnloadFramebuffer", &ffi.TypeVoid, &ffi.TypeUint32)
+
+	// Shaders management
+
+	rlLoadShader               = dll.MustPrep("rlLoadShader", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypeSint32)
+	rlLoadShaderProgram        = dll.MustPrep("rlLoadShaderProgram", &ffi.TypeUint32, &ffi.TypePointer, &ffi.TypePointer)
+	rlLoadShaderProgramEx      = dll.MustPrep("rlLoadShaderProgramEx", &ffi.TypeUint32, &ffi.TypeUint32, &ffi.TypeUint32)
+	rlLoadShaderProgramCompute = dll.MustPrep("rlLoadShaderProgramCompute", &ffi.TypeUint32, &ffi.TypeUint32)
+	rlUnloadShader             = dll.MustPrep("rlUnloadShader", &ffi.TypeVoid, &ffi.TypeUint32)
+	rlUnloadShaderProgram      = dll.MustPrep("rlUnloadShaderProgram", &ffi.TypeVoid, &ffi.TypeUint32)
 )
 
 // MatrixMode - Choose the current matrix to be transformed
@@ -779,4 +799,76 @@ func DrawVertexArrayInstanced(offset, count, instances int32) {
 // DrawVertexArrayElementsInstanced - Draw vertex array elements with instancing
 func DrawVertexArrayElementsInstanced(offset int32, count int32, buffer unsafe.Pointer, instances int32) {
 	rlDrawVertexArrayElementsInstanced.Call(nil, &offset, &count, &buffer, &instances)
+}
+
+// LoadTextureDepth - Load depth texture/renderbuffer (to be attached to fbo)
+func LoadTextureDepth(width, height int32, useRenderBuffer bool) uint32 {
+	var ret ffi.Arg
+	rlLoadTextureDepth.Call(&ret, &width, &height, &useRenderBuffer)
+	return uint32(ret)
+}
+
+// LoadFramebuffer - Load an empty framebuffer
+func LoadFramebuffer() uint32 {
+	var ret ffi.Arg
+	rlLoadFramebuffer.Call(&ret)
+	return uint32(ret)
+}
+
+// FramebufferAttach - Attach texture/renderbuffer to a framebuffer
+func FramebufferAttach(fboId, texId uint32, attachType, texType, mipLevel int32) {
+	rlFramebufferAttach.Call(nil, &fboId, &texId, &attachType, &texType, &mipLevel)
+}
+
+// FramebufferComplete - Verify framebuffer is complete
+func FramebufferComplete(id uint32) bool {
+	var ret ffi.Arg
+	rlFramebufferComplete.Call(&ret, &id)
+	return ret.Bool()
+}
+
+// UnloadFramebuffer - Delete framebuffer from GPU
+func UnloadFramebuffer(id uint32) {
+	rlUnloadFramebuffer.Call(nil, &id)
+}
+
+// LoadShaderId - Load (compile) shader and return shader id (type: [VertexShader], [FragmentShader], [ComputeShader])
+func LoadShaderId(code string, shaderType int32) uint32 {
+	codePtr := convert.ToBytePtr(code)
+	var ret ffi.Arg
+	rlLoadShader.Call(&ret, &codePtr, &shaderType)
+	return uint32(ret)
+}
+
+// LoadShaderProgram - Load shader from code strings
+func LoadShaderProgram(vsCode, fsCode string) uint32 {
+	vsCodePtr := convert.ToBytePtrNullable(vsCode)
+	fsCodePtr := convert.ToBytePtrNullable(fsCode)
+	var ret ffi.Arg
+	rlLoadShaderProgram.Call(&ret, &vsCodePtr, &fsCodePtr)
+	return uint32(ret)
+}
+
+// LoadShaderProgramEx - Load shader program, using already loaded shader ids
+func LoadShaderProgramEx(vsId, fsId uint32) uint32 {
+	var ret ffi.Arg
+	rlLoadShaderProgramEx.Call(&ret, &vsId, &fsId)
+	return uint32(ret)
+}
+
+// LoadShaderProgramCompute - Load compute shader program
+func LoadShaderProgramCompute(csId uint32) uint32 {
+	var ret ffi.Arg
+	rlLoadShaderProgramCompute.Call(&ret, &csId)
+	return uint32(ret)
+}
+
+// UnloadShaderId - Unload shader, loaded with [LoadShaderId]
+func UnloadShaderId(id uint32) {
+	rlUnloadShader.Call(nil, &id)
+}
+
+// UnloadShaderProgram - Unload shader program
+func UnloadShaderProgram(id uint32) {
+	rlUnloadShaderProgram.Call(nil, &id)
 }
