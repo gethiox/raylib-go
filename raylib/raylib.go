@@ -940,10 +940,24 @@ type ModelAnimPose = *Transform
 type ModelSkeleton struct {
 	// Number of bones
 	BoneCount int32
-	// Bones information (skeleton)
+	// Bones information (skeleton) (c array)
+	//
+	// Use ModelSkeleton.GetBones instead (go slice)
 	Bones *BoneInfo
-	// Bones base transformation ([]Transform)
+	// Bones base transformation ([]Transform) (c array)
+	//
+	// Use ModelSkeleton.GetBindPose instead (go slice)
 	BindPose ModelAnimPose
+}
+
+// GetBones returns the bones information (skeleton) of a model as go slice
+func (m ModelSkeleton) GetBones() []BoneInfo {
+	return unsafe.Slice(m.Bones, m.BoneCount)
+}
+
+// GetBindPose returns the bones base transformation of a model as go slice
+func (m ModelSkeleton) GetBindPose() []Transform {
+	return unsafe.Slice(m.BindPose, m.BoneCount)
 }
 
 // Ray type (useful for raycast)
