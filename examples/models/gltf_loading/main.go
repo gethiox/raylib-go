@@ -49,8 +49,8 @@ func main() {
 		}
 
 		animPlaying := modelAnims[animIndex]
-		animCurrentFrame = (animCurrentFrame + 1) % int(animPlaying.FrameCount)
-		rl.UpdateModelAnimation(model, animPlaying, int32(animCurrentFrame))
+		animCurrentFrame = (animCurrentFrame + 1) % int(animPlaying.KeyframeCount)
+		rl.UpdateModelAnimation(model, animPlaying, float32(animCurrentFrame))
 
 		rl.BeginDrawing()
 
