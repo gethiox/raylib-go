@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gen2brain/raylib-go/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func main() {
@@ -21,7 +21,7 @@ func main() {
 		rl.DrawLine(18, 42, screenWidth-18, 42, rl.Black)
 
 		rl.DrawCircle(screenWidth/4, 120, 35, rl.DarkBlue)
-		rl.DrawCircleGradient(screenWidth/4, 220, 60, rl.Green, rl.SkyBlue)
+		rl.DrawCircleGradient(rl.Vector2{X: float32(screenWidth / 4), Y: 220}, 60, rl.Green, rl.SkyBlue)
 		rl.DrawCircleLines(screenWidth/4, 340, 80, rl.DarkBlue)
 
 		rl.DrawRectangle(screenWidth/4*2-60, 100, 120, 60, rl.Red)
