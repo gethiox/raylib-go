@@ -3248,11 +3248,12 @@ func UploadMesh(mesh *Mesh, dynamic bool) {
 }
 
 // UpdateMeshBuffer - Update mesh vertex data in GPU for a specific buffer index
-func UpdateMeshBuffer(mesh Mesh, index int32, data []byte, offset int) {
+func UpdateMeshBuffer(mesh Mesh, index int, data []byte, offset int) {
 	dataSize := int32(len(data))
 	dataPtr := unsafe.SliceData(data)
 	o := int32(offset)
-	updateMeshBuffer.Call(nil, &mesh, &index, &dataPtr, &dataSize, &o)
+	i := int32(index)
+	updateMeshBuffer.Call(nil, &mesh, &i, &dataPtr, &dataSize, &o)
 }
 
 // UnloadMesh - Unload mesh data from CPU and GPU

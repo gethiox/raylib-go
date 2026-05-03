@@ -246,8 +246,13 @@ func LoadImagePalette(img Image, maxPaletteSize int32) []color.RGBA {
 }
 
 // UnloadImageColors - Unload color data loaded with LoadImageColors()
-func UnloadImageColors(cols []color.RGBA) {
-	C.UnloadImageColors((*C.Color)(unsafe.Pointer(&cols[0])))
+func UnloadImageColors(colors []color.RGBA) {
+	C.UnloadImageColors((*C.Color)(unsafe.Pointer(&colors[0])))
+}
+
+// UnloadImagePalette - Unload colors palette loaded with LoadImagePalette()
+func UnloadImagePalette(colors []color.RGBA) {
+	C.UnloadImagePalette((*C.Color)(unsafe.Pointer(&colors[0])))
 }
 
 // UpdateTexture - Update GPU texture with new data ([]color.RGBA, *image.RGBA or []byte)

@@ -70,8 +70,8 @@ func LoadFontEx(fileName string, fontSize int32, fontChars []rune, runesNumber .
 	return v
 }
 
-// LoadFontFromImage - Loads an Image font file (XNA style)
-func LoadFontFromImage(image Image, key color.RGBA, firstChar int32) Font {
+// LoadFontFromImage - Load font from Image (XNA style)
+func LoadFontFromImage(image Image, key color.RGBA, firstChar rune) Font {
 	cimage := image.cptr()
 	ckey := colorCptr(key)
 	cfirstChar := (C.int)(firstChar)

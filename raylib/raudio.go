@@ -223,12 +223,12 @@ func IsSoundValid(sound Sound) bool {
 	return v
 }
 
-// UpdateSound - Update sound buffer with new data
-func UpdateSound(sound Sound, data []byte, samplesCount int32) {
+// UpdateSound - Update sound buffer with new data (default data format: 32 bit float, stereo)
+func UpdateSound(sound Sound, data []byte, sampleCount int32) {
 	csound := sound.cptr()
 	cdata := unsafe.Pointer(&data[0])
-	csamplesCount := (C.int)(samplesCount)
-	C.UpdateSound(*csound, cdata, csamplesCount)
+	csampleCount := (C.int)(sampleCount)
+	C.UpdateSound(*csound, cdata, csampleCount)
 }
 
 // UnloadWave - Unload wave data
@@ -244,8 +244,8 @@ func UnloadSound(sound Sound) {
 }
 
 // UnloadSoundAlias - Unload a sound alias (does not deallocate sample data)
-func UnloadSoundAlias(sound Sound) {
-	csound := sound.cptr()
+func UnloadSoundAlias(alias Sound) {
+	csound := alias.cptr()
 	C.UnloadSoundAlias(*csound)
 }
 

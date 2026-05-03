@@ -647,6 +647,11 @@ func LoadVertexArray() uint32 {
 	return uint32(C.rlLoadVertexArray())
 }
 
+// UnloadVertexArray - Unload vertex array (vao)
+func UnloadVertexArray(vaoId uint32) {
+	C.rlUnloadVertexArray(C.uint(vaoId))
+}
+
 // UnloadVertexBuffer .
 func UnloadVertexBuffer(vboId uint32) {
 	cvboId := C.uint(vboId)
@@ -836,6 +841,11 @@ func LoadShaderProgramEx(vsId, fsId uint32) uint32 {
 func LoadShaderProgramCompute(csId uint32) uint32 {
 	ret := C.rlLoadShaderProgramCompute(C.uint(csId))
 	return uint32(ret)
+}
+
+// UnloadShaderId - Unload shader, loaded with [LoadShaderId]
+func UnloadShaderId(id uint32) {
+	C.rlUnloadShader(C.uint(id))
 }
 
 // UnloadShaderProgram - Unload shader program

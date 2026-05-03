@@ -933,9 +933,9 @@ func SetConfigFlags(flags uint32) {
 	C.SetConfigFlags(cflags)
 }
 
-// TakeScreenshot - Takes a screenshot of current screen (saved a .png)
-func TakeScreenshot(name string) {
-	cname := C.CString(name)
+// TakeScreenshot - Takes a screenshot of current screen (filename extension defines format)
+func TakeScreenshot(fileName string) {
+	cname := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cname))
 	C.TakeScreenshot(cname)
 }

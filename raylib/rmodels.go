@@ -609,6 +609,14 @@ func UpdateModelAnimation(model Model, anim ModelAnimation, frame float32) {
 	C.UpdateModelAnimation(*cmodel, *canim, cframe)
 }
 
+// UpdateModelAnimationEx - Update model animation pose, blending two animations
+func UpdateModelAnimationEx(model Model, animA ModelAnimation, frameA float32, animB ModelAnimation, frameB, blend float32) {
+	cmodel := model.cptr()
+	canimA := animA.cptr()
+	canimB := animB.cptr()
+	C.UpdateModelAnimationEx(*cmodel, *canimA, C.float(frameA), *canimB, C.float(frameB), C.float(blend))
+}
+
 // UnloadModelAnimations - Unload animation array data
 func UnloadModelAnimations(animations []ModelAnimation) {
 	C.UnloadModelAnimations((*C.ModelAnimation)(unsafe.Pointer(&animations[0])), (C.int)(len(animations)))
