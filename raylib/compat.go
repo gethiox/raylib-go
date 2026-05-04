@@ -50,17 +50,17 @@ func UploadMesh(mesh *Mesh, dynamic bool) {
 	if mesh.Indices != nil {
 		pinner.Pin(mesh.Indices)
 	}
+	if mesh.BoneIndices != nil {
+		pinner.Pin(mesh.BoneIndices)
+	}
+	if mesh.BoneWeights != nil {
+		pinner.Pin(mesh.BoneWeights)
+	}
 	if mesh.AnimVertices != nil {
 		pinner.Pin(mesh.AnimVertices)
 	}
 	if mesh.AnimNormals != nil {
 		pinner.Pin(mesh.AnimNormals)
-	}
-	// if mesh.BoneIds != nil {
-	// 	pinner.Pin(mesh.BoneIds)
-	// }
-	if mesh.BoneWeights != nil {
-		pinner.Pin(mesh.BoneWeights)
 	}
 	// VboID of a new mesh should always be nil before uploading, but including this in case a mesh happens to have it set.
 	if mesh.VboID != nil {

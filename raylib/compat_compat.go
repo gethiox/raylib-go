@@ -34,10 +34,10 @@ func UploadMesh(mesh *Mesh, dynamic bool) {
 	defer runtime.KeepAlive(mesh.Tangents)
 	defer runtime.KeepAlive(mesh.Colors)
 	defer runtime.KeepAlive(mesh.Indices)
+	defer runtime.KeepAlive(mesh.BoneIndices)
+	defer runtime.KeepAlive(mesh.BoneWeights)
 	defer runtime.KeepAlive(mesh.AnimVertices)
 	defer runtime.KeepAlive(mesh.AnimNormals)
-	defer runtime.KeepAlive(mesh.BoneIds)
-	defer runtime.KeepAlive(mesh.BoneWeights)
 	defer runtime.KeepAlive(mesh.VboID)
 
 	cMesh := mesh.cptr()
