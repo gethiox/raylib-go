@@ -37,7 +37,7 @@ func GetFontDefault() Font {
 	return v
 }
 
-// LoadFont - Load a Font image into GPU memory (VRAM)
+// LoadFont - Load font from file into GPU memory (VRAM)
 func LoadFont(fileName string) Font {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -80,7 +80,7 @@ func LoadFontFromImage(image Image, key color.RGBA, firstChar rune) Font {
 	return v
 }
 
-// LoadFontFromMemory - Load font from memory buffer, fileType refers to extension: i.e. ".ttf"
+// LoadFontFromMemory - Load font from memory buffer, fileType refers to extension: i.e. '.ttf'
 func LoadFontFromMemory(fileType string, fileData []byte, fontSize int32, codepoints []rune) Font {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -135,13 +135,13 @@ func UnloadFontData(glyphs []GlyphInfo) {
 	C.UnloadFontData(cglyphs, C.int(len(glyphs)))
 }
 
-// UnloadFont - Unload Font from GPU memory (VRAM)
+// UnloadFont - Unload font from GPU memory (VRAM)
 func UnloadFont(font Font) {
 	cfont := font.cptr()
 	C.UnloadFont(*cfont)
 }
 
-// DrawFPS - Shows current FPS
+// DrawFPS - Draw current FPS
 func DrawFPS(posX int32, posY int32) {
 	cposX := (C.int)(posX)
 	cposY := (C.int)(posY)
@@ -159,7 +159,7 @@ func DrawText(text string, posX int32, posY int32, fontSize int32, col color.RGB
 	C.DrawText(ctext, cposX, cposY, cfontSize, *ccolor)
 }
 
-// DrawTextEx - Draw text using Font and additional parameters
+// DrawTextEx - Draw text using font and additional parameters
 func DrawTextEx(font Font, text string, position Vector2, fontSize float32, spacing float32, tint color.RGBA) {
 	cfont := font.cptr()
 	ctext := C.CString(text)

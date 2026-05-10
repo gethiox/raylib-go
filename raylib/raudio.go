@@ -63,6 +63,7 @@ func internalAudioStreamCallbackGo(data unsafe.Pointer, frames C.int) {
 	}
 }
 
+// AttachAudioMixedProcessor - Attach audio stream processor to the entire audio pipeline, receives frames x 2 samples as 'float' (stereo)
 func AttachAudioMixedProcessor(processor AudioCallback) {
 	audioMixedProcessorsMutex.Lock()
 	defer audioMixedProcessorsMutex.Unlock()
@@ -74,6 +75,7 @@ func AttachAudioMixedProcessor(processor AudioCallback) {
 	audioMixedProcessors = append(audioMixedProcessors, processor)
 }
 
+// DetachAudioMixedProcessor - Detach audio stream processor from the entire audio pipeline
 func DetachAudioMixedProcessor(processor AudioCallback) {
 	audioMixedProcessorsMutex.Lock()
 	defer audioMixedProcessorsMutex.Unlock()
@@ -155,14 +157,14 @@ func SetMasterVolume(volume float32) {
 	C.SetMasterVolume(cvolume)
 }
 
-// GetMasterVolume - Set master volume (listener)
+// GetMasterVolume - Get master volume (listener)
 func GetMasterVolume() float32 {
 	ret := C.GetMasterVolume()
 	v := float32(ret)
 	return v
 }
 
-// LoadWave - Load wave data from file into RAM
+// LoadWave - Load wave data from file
 func LoadWave(fileName string) Wave {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -171,7 +173,7 @@ func LoadWave(fileName string) Wave {
 	return v
 }
 
-// LoadWaveFromMemory - Load wave from memory buffer, fileType refers to extension: i.e. ".wav"
+// LoadWaveFromMemory - Load wave from memory buffer, fileType refers to extension: i.e. '.wav'
 func LoadWaveFromMemory(fileType string, fileData []byte, dataSize int32) Wave {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -190,7 +192,7 @@ func IsWaveValid(wave Wave) bool {
 	return v
 }
 
-// LoadSound - Load sound to memory
+// LoadSound - Load sound from file
 func LoadSound(fileName string) Sound {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -199,7 +201,7 @@ func LoadSound(fileName string) Sound {
 	return v
 }
 
-// LoadSoundFromWave - Load sound to memory from wave data
+// LoadSoundFromWave - Load sound from wave data
 func LoadSoundFromWave(wave Wave) Sound {
 	cwave := wave.cptr()
 	ret := C.LoadSoundFromWave(*cwave)
@@ -305,7 +307,7 @@ func SetSoundPitch(sound Sound, pitch float32) {
 	C.SetSoundPitch(*csound, cpitch)
 }
 
-// SetSoundPan - Set pan for a sound (0.5 is center)
+// SetSoundPan - Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 func SetSoundPan(sound Sound, pan float32) {
 	csound := sound.cptr()
 	cpan := (C.float)(pan)
@@ -337,7 +339,7 @@ func WaveCrop(wave *Wave, initFrame int32, finalFrame int32) {
 	C.WaveCrop(cwave, cinitFrame, cfinalFrame)
 }
 
-// LoadWaveSamples - Get samples data from wave as a floats array
+// LoadWaveSamples - Load samples data from wave as a 32bit float data array
 func LoadWaveSamples(wave Wave) []float32 {
 	cwave := wave.cptr()
 	ret := C.LoadWaveSamples(*cwave)
@@ -443,7 +445,7 @@ func SetMusicPitch(music Music, pitch float32) {
 	C.SetMusicPitch(cmusic, cpitch)
 }
 
-// SetMusicPan - Set pan for a music (0.5 is center)
+// SetMusicPan - Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
 func SetMusicPan(music Music, pan float32) {
 	cmusic := *(*C.Music)(unsafe.Pointer(&music))
 	cpan := (C.float)(pan)
@@ -490,11 +492,11 @@ func UnloadAudioStream(stream AudioStream) {
 	C.UnloadAudioStream(*cstream)
 }
 
-// UpdateAudioStream - Update audio stream buffers with data ([]float32 or []int16)
-func UpdateAudioStream(stream AudioStream, data any) {
+// UpdateAudioStream - Update audio stream buffers with data
+func UpdateAudioStream[T float32 | int16](stream AudioStream, data []T) {
 	var cdata unsafe.Pointer
 	var csamplesCount C.int
-	switch d := data.(type) {
+	switch d := any(data).(type) {
 	case []float32:
 		cdata = unsafe.Pointer(&d[0])
 		csamplesCount = (C.int)(len(d))
@@ -560,7 +562,7 @@ func SetAudioStreamPitch(stream AudioStream, pitch float32) {
 	C.SetAudioStreamPitch(*cstream, cpitch)
 }
 
-// SetAudioStreamPan - Set pan for audio stream (0.5 is centered)
+// SetAudioStreamPan - Set pan for audio stream (-1.0 to 1.0 range, 0.0 is centered)
 func SetAudioStreamPan(stream AudioStream, pan float32) {
 	cstream := stream.cptr()
 	cpan := (C.float)(pan)

@@ -260,7 +260,7 @@ func DrawGrid(slices int32, spacing float32) {
 	C.DrawGrid(cslices, cspacing)
 }
 
-// LoadModel - Load model from file
+// LoadModel - Load model from files (meshes and materials)
 func LoadModel(fileName string) Model {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -285,13 +285,13 @@ func IsModelValid(model Model) bool {
 	return v
 }
 
-// UnloadModel - Unload model from memory (RAM and/or VRAM)
+// UnloadModel - Unload model (including meshes) from memory (RAM and/or VRAM)
 func UnloadModel(model Model) {
 	cmodel := model.cptr()
 	C.UnloadModel(*cmodel)
 }
 
-// GetModelBoundingBox - Compute model bounding box limits (considers all meshes
+// GetModelBoundingBox - Compute model bounding box limits (considers all meshes)
 func GetModelBoundingBox(model Model) BoundingBox {
 	cmodel := model.cptr()
 	ret := C.GetModelBoundingBox(*cmodel)
@@ -389,12 +389,12 @@ func UpdateMeshBuffer(mesh Mesh, index int, data []byte, offset int) {
 	C.UpdateMeshBuffer(*mesh.cptr(), cindex, unsafe.Pointer(&data[0]), cdataSize, coffset)
 }
 
-// DrawMesh - Draw a single mesh
+// DrawMesh - Draw a 3d mesh with material and transform
 func DrawMesh(mesh Mesh, material Material, transform Matrix) {
 	C.DrawMesh(*mesh.cptr(), *material.cptr(), *transform.cptr())
 }
 
-// DrawMeshInstanced - Draw mesh with instanced rendering
+// DrawMeshInstanced - Draw multiple mesh instances with material and different transforms
 func DrawMeshInstanced(mesh Mesh, material Material, transforms []Matrix, instances int) {
 	C.DrawMeshInstanced(*mesh.cptr(), *material.cptr(), transforms[0].cptr(), C.int(instances))
 }
@@ -544,7 +544,7 @@ func GenMeshCubicmap(cubicmap Image, cubeSize Vector3) Mesh {
 	return v
 }
 
-// LoadMaterials - Load material data (.MTL)
+// LoadMaterials - Load materials from model file
 func LoadMaterials(fileName string) []Material {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -569,7 +569,7 @@ func IsMaterialValid(material Material) bool {
 	return v
 }
 
-// UnloadMaterial - Unload material textures from VRAM
+// UnloadMaterial - Unload material from GPU memory (VRAM)
 func UnloadMaterial(material Material) {
 	cmaterial := material.cptr()
 	C.UnloadMaterial(*cmaterial)
@@ -601,7 +601,7 @@ func LoadModelAnimations(fileName string) []ModelAnimation {
 	return v
 }
 
-// UpdateModelAnimation - Update model animation pose (CPU)
+// UpdateModelAnimation - Update model animation pose (vertex buffers and bone matrices)
 func UpdateModelAnimation(model Model, anim ModelAnimation, frame float32) {
 	cmodel := model.cptr()
 	canim := anim.cptr()
@@ -631,7 +631,7 @@ func IsModelAnimationValid(model Model, anim ModelAnimation) bool {
 	return v
 }
 
-// CheckCollisionSpheres - Detect collision between two spheres
+// CheckCollisionSpheres - Check collision between two spheres
 func CheckCollisionSpheres(center1 Vector3, radius1 float32, center2 Vector3, radius2 float32) bool {
 	ccenter1 := center1.cptr()
 	cradius1 := (C.float)(radius1)
@@ -642,7 +642,7 @@ func CheckCollisionSpheres(center1 Vector3, radius1 float32, center2 Vector3, ra
 	return v
 }
 
-// CheckCollisionBoxes - Detect collision between two bounding boxes
+// CheckCollisionBoxes - Check collision between two bounding boxes
 func CheckCollisionBoxes(box1 BoundingBox, box2 BoundingBox) bool {
 	cbox1 := box1.cptr()
 	cbox2 := box2.cptr()
@@ -651,7 +651,7 @@ func CheckCollisionBoxes(box1 BoundingBox, box2 BoundingBox) bool {
 	return v
 }
 
-// CheckCollisionBoxSphere - Detect collision between box and sphere
+// CheckCollisionBoxSphere - Check collision between box and sphere
 func CheckCollisionBoxSphere(box BoundingBox, center Vector3, radius float32) bool {
 	cbox := box.cptr()
 	ccenter := center.cptr()

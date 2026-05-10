@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-// SetShapesTexture - Define default texture used to draw shapes
+// SetShapesTexture - Set texture and rectangle to be used on shapes drawing
 func SetShapesTexture(texture Texture2D, source Rectangle) {
 	ctexture := texture.cptr()
 	csource := source.cptr()
@@ -56,7 +56,7 @@ func DrawLine(startPosX, startPosY, endPosX, endPosY int32, col color.RGBA) {
 	C.DrawLine(cstartPosX, cstartPosY, cendPosX, cendPosY, *ccolor)
 }
 
-// DrawLineV - Draw a line (Vector version)
+// DrawLineV - Draw a line (using gl lines)
 func DrawLineV(startPos, endPos Vector2, col color.RGBA) {
 	cstartPos := startPos.cptr()
 	cendPos := endPos.cptr()
@@ -64,7 +64,7 @@ func DrawLineV(startPos, endPos Vector2, col color.RGBA) {
 	C.DrawLineV(*cstartPos, *cendPos, *ccolor)
 }
 
-// DrawLineEx - Draw a line defining thickness
+// DrawLineEx - Draw a line (using triangles/quads)
 func DrawLineEx(startPos, endPos Vector2, thick float32, col color.RGBA) {
 	cstartPos := startPos.cptr()
 	cendPos := endPos.cptr()
@@ -73,7 +73,7 @@ func DrawLineEx(startPos, endPos Vector2, thick float32, col color.RGBA) {
 	C.DrawLineEx(*cstartPos, *cendPos, cthick, *ccolor)
 }
 
-// DrawLineStrip - Draw lines sequence
+// DrawLineStrip - Draw lines sequence (using gl lines)
 func DrawLineStrip(points []Vector2, col color.RGBA) {
 	cpoints := (*C.Vector2)(unsafe.Pointer(&points[0]))
 	cpointCount := (C.int)(len(points))
@@ -81,7 +81,7 @@ func DrawLineStrip(points []Vector2, col color.RGBA) {
 	C.DrawLineStrip(cpoints, cpointCount, *ccolor)
 }
 
-// DrawLineBezier - Draw a line using cubic-bezier curves in-out
+// DrawLineBezier - Draw line segment cubic-bezier in-out interpolation
 func DrawLineBezier(startPos, endPos Vector2, thick float32, col color.RGBA) {
 	cstartPos := startPos.cptr()
 	cendPos := endPos.cptr()
@@ -120,7 +120,7 @@ func DrawCircleSector(center Vector2, radius, startAngle, endAngle float32, segm
 	C.DrawCircleSector(*ccenter, cradius, cstartAngle, cendAngle, csegments, *ccolor)
 }
 
-// DrawCircleSectorLines -
+// DrawCircleSectorLines - Draw circle sector outline
 func DrawCircleSectorLines(center Vector2, radius, startAngle, endAngle float32, segments int32, col color.RGBA) {
 	ccenter := center.cptr()
 	cradius := (C.float)(radius)
@@ -339,7 +339,7 @@ func DrawRectangleRoundedLinesEx(rec Rectangle, roundness float32, segments int3
 	C.DrawRectangleRoundedLinesEx(*crec, croundness, csegments, clineThick, *ccolor)
 }
 
-// DrawTriangle - Draw a color-filled triangle
+// DrawTriangle - Draw a color-filled triangle (vertex in counter-clockwise order!)
 func DrawTriangle(v1, v2, v3 Vector2, col color.RGBA) {
 	cv1 := v1.cptr()
 	cv2 := v2.cptr()
@@ -348,7 +348,7 @@ func DrawTriangle(v1, v2, v3 Vector2, col color.RGBA) {
 	C.DrawTriangle(*cv1, *cv2, *cv3, *ccolor)
 }
 
-// DrawTriangleLines - Draw triangle outline
+// DrawTriangleLines - Draw triangle outline (vertex in counter-clockwise order!)
 func DrawTriangleLines(v1, v2, v3 Vector2, col color.RGBA) {
 	cv1 := v1.cptr()
 	cv2 := v2.cptr()
@@ -357,7 +357,7 @@ func DrawTriangleLines(v1, v2, v3 Vector2, col color.RGBA) {
 	C.DrawTriangleLines(*cv1, *cv2, *cv3, *ccolor)
 }
 
-// DrawTriangleFan - Draw a triangle fan defined by points
+// DrawTriangleFan - Draw a triangle fan defined by points (first vertex is the center)
 func DrawTriangleFan(points []Vector2, col color.RGBA) {
 	cpoints := (*C.Vector2)(unsafe.Pointer(&points[0]))
 	cpointsCount := (C.int)(len(points))

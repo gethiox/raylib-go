@@ -727,7 +727,7 @@ func DrawRenderBatch(batch *RenderBatch) {
 	rlDrawRenderBatch.Call(nil, &batch)
 }
 
-// rlSetRenderBatchActive - Set the active render batch for rlgl (NULL for default internal)
+// SetRenderBatchActive - Set the active render batch for rlgl (NULL for default internal)
 func SetRenderBatchActive(batch *RenderBatch) {
 	rlSetRenderBatchActive.Call(nil, &batch)
 }
@@ -980,7 +980,7 @@ func ComputeShaderDispatch(groupX uint32, groupY uint32, groupZ uint32) {
 	rlComputeShaderDispatch.Call(nil, &groupX, &groupY, &groupZ)
 }
 
-// LoadShaderBuffer loads a shader storage buffer object (SSBO)
+// LoadShaderBuffer - Load shader storage buffer object (SSBO)
 func LoadShaderBuffer(size uint32, data unsafe.Pointer, usageHint int32) uint32 {
 	var ret ffi.Arg
 	rlLoadShaderBuffer.Call(&ret, &size, &data, &usageHint)

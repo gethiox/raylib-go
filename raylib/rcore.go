@@ -131,14 +131,14 @@ func (a *AutomationEventList) cptr() *C.AutomationEventList {
 	return (*C.AutomationEventList)(unsafe.Pointer(a))
 }
 
-// WindowShouldClose - Check if KeyEscape pressed or Close icon pressed
+// WindowShouldClose - Check if application should close ([KeyEscape] pressed or windows close icon clicked)
 func WindowShouldClose() bool {
 	ret := C.WindowShouldClose()
 	v := bool(ret)
 	return v
 }
 
-// InitWindow - Initialize Window and OpenGL Graphics
+// InitWindow - Initialize window and OpenGL context
 func InitWindow(width int32, height int32, title string) {
 	cwidth := (C.int)(width)
 	cheight := (C.int)(height)
@@ -149,7 +149,7 @@ func InitWindow(width int32, height int32, title string) {
 	C.InitWindow(cwidth, cheight, ctitle)
 }
 
-// CloseWindow - Close Window and Terminate Context
+// CloseWindow - Close window and unload OpenGL context
 func CloseWindow() {
 	C.CloseWindow()
 }
@@ -196,7 +196,7 @@ func IsWindowFocused() bool {
 	return v
 }
 
-// IsWindowResized - Check if window has been resized
+// IsWindowResized - Check if window has been resized last frame
 func IsWindowResized() bool {
 	ret := C.IsWindowResized()
 	v := bool(ret)
@@ -211,7 +211,7 @@ func IsWindowState(flag uint32) bool {
 	return v
 }
 
-// SetWindowFocused - Sets the window to have focus
+// SetWindowFocused - Set window focused
 func SetWindowFocused() {
 	C.SetWindowFocused()
 }
@@ -228,12 +228,12 @@ func ClearWindowState(flags uint32) {
 	C.ClearWindowState(cflags)
 }
 
-// ToggleFullscreen - Fullscreen toggle (only PLATFORM_DESKTOP)
+// ToggleFullscreen - Toggle window state: fullscreen/windowed, resizes monitor to match window resolution
 func ToggleFullscreen() {
 	C.ToggleFullscreen()
 }
 
-// ToggleBorderlessWindowed - Borderless fullscreen toggle (only PLATFORM_DESKTOP)
+// ToggleBorderlessWindowed - Toggle window state: borderless windowed, resizes window to match monitor resolution
 func ToggleBorderlessWindowed() {
 	C.ToggleBorderlessWindowed()
 }
@@ -248,7 +248,7 @@ func MinimizeWindow() {
 	C.MinimizeWindow()
 }
 
-// RestoreWindow - Set window state: not minimized/maximized
+// RestoreWindow - Restore window from being minimized/maximized
 func RestoreWindow() {
 	C.RestoreWindow()
 }
@@ -266,21 +266,21 @@ func SetWindowIcons(images []Image, count int32) {
 	C.SetWindowIcons(cimages, cimagesCount)
 }
 
-// SetWindowTitle - Set title for window (only PLATFORM_DESKTOP)
+// SetWindowTitle - Set title for window
 func SetWindowTitle(title string) {
 	ctitle := C.CString(title)
 	defer C.free(unsafe.Pointer(ctitle))
 	C.SetWindowTitle(ctitle)
 }
 
-// SetWindowPosition - Set window position on screen (only PLATFORM_DESKTOP)
+// SetWindowPosition - Set window position on screen
 func SetWindowPosition(x, y int) {
 	cx := (C.int)(x)
 	cy := (C.int)(y)
 	C.SetWindowPosition(cx, cy)
 }
 
-// SetWindowMonitor - Set monitor for the current window (fullscreen mode)
+// SetWindowMonitor - Set monitor for the current window
 func SetWindowMonitor(monitor int) {
 	cmonitor := (C.int)(monitor)
 	C.SetWindowMonitor(cmonitor)
@@ -307,7 +307,7 @@ func SetWindowSize(width int, height int) {
 	C.SetWindowSize(cw, ch)
 }
 
-// SetWindowOpacity - Set window opacity [0.0f..1.0f] (only PLATFORM_DESKTOP)
+// SetWindowOpacity - Set window opacity [0.0f..1.0f]
 func SetWindowOpacity(opacity float32) {
 	copacity := (C.float)(opacity)
 	C.SetWindowOpacity(copacity)
@@ -369,7 +369,7 @@ func GetMonitorPosition(monitor int) Vector2 {
 	return v
 }
 
-// GetMonitorWidth - Get primary monitor width
+// GetMonitorWidth - Get specified monitor width (current video mode used by monitor)
 func GetMonitorWidth(monitor int) int {
 	cmonitor := (C.int)(monitor)
 	ret := C.GetMonitorWidth(cmonitor)
@@ -377,7 +377,7 @@ func GetMonitorWidth(monitor int) int {
 	return v
 }
 
-// GetMonitorHeight - Get primary monitor height
+// GetMonitorHeight - Get specified monitor height (current video mode used by monitor)
 func GetMonitorHeight(monitor int) int {
 	cmonitor := (C.int)(monitor)
 	ret := C.GetMonitorHeight(cmonitor)
@@ -385,7 +385,7 @@ func GetMonitorHeight(monitor int) int {
 	return v
 }
 
-// GetMonitorPhysicalWidth - Get primary monitor physical width in millimetres
+// GetMonitorPhysicalWidth - Get specified monitor physical width in millimetres
 func GetMonitorPhysicalWidth(monitor int) int {
 	cmonitor := (C.int)(monitor)
 	ret := C.GetMonitorPhysicalWidth(cmonitor)
@@ -393,7 +393,7 @@ func GetMonitorPhysicalWidth(monitor int) int {
 	return v
 }
 
-// GetMonitorPhysicalHeight - Get primary monitor physical height in millimetres
+// GetMonitorPhysicalHeight - Get specified monitor physical height in millimetres
 func GetMonitorPhysicalHeight(monitor int) int {
 	cmonitor := (C.int)(monitor)
 	ret := C.GetMonitorPhysicalHeight(cmonitor)
@@ -423,7 +423,7 @@ func GetWindowScaleDPI() Vector2 {
 	return v
 }
 
-// GetMonitorName - Get the human-readable, UTF-8 encoded name of the primary monitor
+// GetMonitorName - Get the human-readable, UTF-8 encoded name of the specified monitor
 func GetMonitorName(monitor int) string {
 	cmonitor := (C.int)(monitor)
 	ret := C.GetMonitorName(cmonitor)
@@ -447,7 +447,7 @@ func GetClipboardText() string {
 
 // GetClipboardImage - Get clipboard image content
 //
-// Only works with SDL3 backend or Windows with GLFW/RGFW
+// NOTE: This function doesn't work on all platforms/backends.
 func GetClipboardImage() Image {
 	ret := C.GetClipboardImage()
 	v := newImageFromPointer(unsafe.Pointer(&ret))
@@ -464,34 +464,34 @@ func DisableEventWaiting() {
 	C.DisableEventWaiting()
 }
 
-// ClearBackground - Sets Background Color
+// ClearBackground - Set background color (framebuffer clear color)
 func ClearBackground(col color.RGBA) {
 	ccolor := colorCptr(col)
 	C.ClearBackground(*ccolor)
 }
 
-// BeginDrawing - Setup drawing canvas to start drawing
+// BeginDrawing - Setup canvas (framebuffer) to start drawing
 func BeginDrawing() {
 	C.BeginDrawing()
 }
 
-// EndDrawing - End canvas drawing and Swap Buffers (Double Buffering)
+// EndDrawing - End canvas drawing and swap buffers (double buffering)
 func EndDrawing() {
 	C.EndDrawing()
 }
 
-// BeginMode2D - Initialize 2D mode with custom camera
+// BeginMode2D - Begin 2D mode with custom camera (2D)
 func BeginMode2D(camera Camera2D) {
 	ccamera := camera.cptr()
 	C.BeginMode2D(*ccamera)
 }
 
-// EndMode2D - Ends 2D mode custom camera usage
+// EndMode2D - Ends 2D mode with custom camera
 func EndMode2D() {
 	C.EndMode2D()
 }
 
-// BeginMode3D - Initializes 3D mode for drawing (Camera setup)
+// BeginMode3D - Begin 3D mode with custom camera (3D)
 func BeginMode3D(camera Camera3D) {
 	ccamera := camera.cptr()
 	C.BeginMode3D(*ccamera)
@@ -502,7 +502,7 @@ func EndMode3D() {
 	C.EndMode3D()
 }
 
-// BeginTextureMode - Initializes render texture for drawing
+// BeginTextureMode - Begin drawing to render texture
 func BeginTextureMode(target RenderTexture2D) {
 	ctarget := target.cptr()
 	C.BeginTextureMode(*ctarget)
@@ -513,7 +513,7 @@ func EndTextureMode() {
 	C.EndTextureMode()
 }
 
-// BeginScissorMode - Begins scissor mode (define screen area for following drawing)
+// BeginScissorMode - Begin scissor mode (define screen area for following drawing)
 func BeginScissorMode(x, y, width, height int32) {
 	cx := (C.int)(x)
 	cy := (C.int)(y)
@@ -522,12 +522,12 @@ func BeginScissorMode(x, y, width, height int32) {
 	C.BeginScissorMode(cx, cy, cwidth, cheight)
 }
 
-// EndScissorMode - Ends scissor mode
+// EndScissorMode - End scissor mode
 func EndScissorMode() {
 	C.EndScissorMode()
 }
 
-// LoadShader - Load a custom shader and bind default locations
+// LoadShader - Load shader from files and bind default locations
 func LoadShader(vsFileName string, fsFileName string) Shader {
 	cvsFileName := C.CString(vsFileName)
 	defer C.free(unsafe.Pointer(cvsFileName))
@@ -601,7 +601,7 @@ func GetShaderLocationAttrib(shader Shader, attribName string) int32 {
 	return v
 }
 
-// SetShaderValue - Set shader uniform value (float)
+// SetShaderValue - Set shader uniform value
 func SetShaderValue(shader Shader, locIndex int32, value []float32, uniformType ShaderUniformDataType) {
 	cshader := shader.cptr()
 	clocIndex := (C.int)(locIndex)
@@ -610,7 +610,7 @@ func SetShaderValue(shader Shader, locIndex int32, value []float32, uniformType 
 	C.SetShaderValue(*cshader, clocIndex, unsafe.Pointer(cvalue), cuniformType)
 }
 
-// SetShaderValueV - Set shader uniform value (float)
+// SetShaderValueV - Set shader uniform value vector
 func SetShaderValueV(shader Shader, locIndex int32, value []float32, uniformType ShaderUniformDataType, count int32) {
 	cshader := shader.cptr()
 	clocIndex := (C.int)(locIndex)
@@ -636,7 +636,7 @@ func SetShaderValueTexture(shader Shader, locIndex int32, texture Texture2D) {
 	C.SetShaderValueTexture(*cshader, clocIndex, *ctexture)
 }
 
-// UnloadShader - Unload a custom shader from memory
+// UnloadShader - Unload shader from GPU memory (VRAM)
 func UnloadShader(shader Shader) {
 	cshader := shader.cptr()
 	C.UnloadShader(*cshader)
@@ -669,7 +669,7 @@ func GetScreenToWorldRayEx(position Vector2, camera Camera, width, height int32)
 	return v
 }
 
-// GetCameraMatrix - Returns camera transform matrix (view matrix)
+// GetCameraMatrix - Get camera transform matrix (view matrix)
 func GetCameraMatrix(camera Camera) Matrix {
 	ccamera := camera.cptr()
 	ret := C.GetCameraMatrix(*ccamera)
@@ -677,7 +677,7 @@ func GetCameraMatrix(camera Camera) Matrix {
 	return v
 }
 
-// GetCameraMatrix2D - Returns camera 2d transform matrix
+// GetCameraMatrix2D - Get camera 2d transform matrix
 func GetCameraMatrix2D(camera Camera2D) Matrix {
 	ccamera := camera.cptr()
 	ret := C.GetCameraMatrix2D(*ccamera)
@@ -685,7 +685,7 @@ func GetCameraMatrix2D(camera Camera2D) Matrix {
 	return v
 }
 
-// GetWorldToScreen - Returns the screen space position from a 3d world space position
+// GetWorldToScreen - Get the screen space position for a 3d world space position
 func GetWorldToScreen(position Vector3, camera Camera) Vector2 {
 	cposition := position.cptr()
 	ccamera := camera.cptr()
@@ -694,7 +694,7 @@ func GetWorldToScreen(position Vector3, camera Camera) Vector2 {
 	return v
 }
 
-// GetScreenToWorld2D - Returns the world space position for a 2d camera screen space position
+// GetScreenToWorld2D - Get the world space position for a 2d camera screen space position
 func GetScreenToWorld2D(position Vector2, camera Camera2D) Vector2 {
 	cposition := position.cptr()
 	ccamera := camera.cptr()
@@ -714,7 +714,7 @@ func GetWorldToScreenEx(position Vector3, camera Camera, width int32, height int
 	return v
 }
 
-// GetWorldToScreen2D - Returns the screen space position for a 2d camera world space position
+// GetWorldToScreen2D - Get the screen space position for a 2d camera world space position
 func GetWorldToScreen2D(position Vector2, camera Camera2D) Vector2 {
 	cposition := position.cptr()
 	ccamera := camera.cptr()
@@ -729,21 +729,21 @@ func SetTargetFPS(fps int32) {
 	C.SetTargetFPS(cfps)
 }
 
-// GetFPS - Returns current FPS
+// GetFPS - Get current FPS
 func GetFPS() int32 {
 	ret := C.GetFPS()
 	v := (int32)(ret)
 	return v
 }
 
-// GetFrameTime - Returns time in seconds for one frame
+// GetFrameTime - Get time in seconds for last frame drawn (delta time)
 func GetFrameTime() float32 {
 	ret := C.GetFrameTime()
 	v := (float32)(ret)
 	return v
 }
 
-// GetTime - Return time in seconds
+// GetTime - Get elapsed time in seconds since [InitWindow]
 func GetTime() float64 {
 	ret := C.GetTime()
 	v := (float64)(ret)
@@ -756,12 +756,12 @@ func GetTime() float64 {
 // To avoid that behaviour and control frame processes manually you can either enable in config.h: SUPPORT_CUSTOM_FRAME_CONTROL
 // or add CGO_CFLAGS="-DSUPPORT_CUSTOM_FRAME_CONTROL=1" to your build
 
-// SwapScreenBuffer - Swap back buffer to front buffer
+// SwapScreenBuffer - Swap back buffer with front buffer (screen drawing)
 func SwapScreenBuffer() {
 	C.SwapScreenBuffer()
 }
 
-// Register all input events
+// PollInputEvents - Register all input events
 func PollInputEvents() {
 	C.PollInputEvents()
 }
@@ -772,7 +772,7 @@ func WaitTime(seconds float64) {
 	C.WaitTime(cseconds)
 }
 
-// Fade - Returns color with alpha applied, alpha goes from 0.0f to 1.0f
+// Fade - Get color with alpha applied, alpha goes from 0.0f to 1.0f
 func Fade(col color.RGBA, alpha float32) color.RGBA {
 	ccolor := colorCptr(col)
 	calpha := (C.float)(alpha)
@@ -789,7 +789,7 @@ func ColorToInt(col color.RGBA) int32 {
 	return v
 }
 
-// ColorNormalize - Returns color normalized as float [0..1]
+// ColorNormalize - Get Color normalized as float [0..1]
 func ColorNormalize(col color.RGBA) Vector4 {
 	result := Vector4{}
 	r, g, b, a := col.R, col.G, col.B, col.A
@@ -801,7 +801,7 @@ func ColorNormalize(col color.RGBA) Vector4 {
 	return result
 }
 
-// ColorFromNormalized - Returns Color from normalized values [0..1]
+// ColorFromNormalized - Get Color from normalized values [0..1]
 func ColorFromNormalized(normalized Vector4) color.RGBA {
 	cnormalized := normalized.cptr()
 	ret := C.ColorFromNormalized(*cnormalized)
@@ -809,7 +809,7 @@ func ColorFromNormalized(normalized Vector4) color.RGBA {
 	return v
 }
 
-// ColorToHSV - Returns HSV values for a Color, hue [0..360], saturation/value [0..1]
+// ColorToHSV - Get HSV values for a Color, hue [0..360], saturation/value [0..1]
 func ColorToHSV(col color.RGBA) Vector3 {
 	ccolor := colorCptr(col)
 	ret := C.ColorToHSV(*ccolor)
@@ -817,7 +817,7 @@ func ColorToHSV(col color.RGBA) Vector3 {
 	return v
 }
 
-// ColorFromHSV - Returns a Color from HSV values, hue [0..360], saturation/value [0..1]
+// ColorFromHSV - Get a Color from HSV values, hue [0..360], saturation/value [0..1]
 func ColorFromHSV(hue, saturation, value float32) color.RGBA {
 	chue := (C.float)(hue)
 	csaturation := (C.float)(saturation)
@@ -854,12 +854,12 @@ func ColorContrast(col color.RGBA, contrast float32) color.RGBA {
 	return v
 }
 
-// ColorAlpha - Returns color with alpha applied, alpha goes from 0.0f to 1.0f
+// ColorAlpha - Get color with alpha applied, alpha goes from 0.0f to 1.0f
 func ColorAlpha(col color.RGBA, alpha float32) color.RGBA {
 	return Fade(col, alpha)
 }
 
-// ColorAlphaBlend - Returns src alpha-blended into dst color with tint
+// ColorAlphaBlend - Get src alpha-blended into dst color with tint
 func ColorAlphaBlend(dst, src, tint color.RGBA) color.RGBA {
 	cdst := colorCptr(dst)
 	csrc := colorCptr(src)
@@ -878,7 +878,7 @@ func ColorLerp(col1, col2 color.RGBA, factor float32) color.RGBA {
 	return v
 }
 
-// GetColor - Returns a Color struct from hexadecimal value
+// GetColor - Get Color structure from hexadecimal value
 func GetColor(hexValue uint) color.RGBA {
 	chexValue := (C.uint)(hexValue)
 	ret := C.GetColor(chexValue)
@@ -927,7 +927,7 @@ func OpenURL(url string) {
 	C.OpenURL(curl)
 }
 
-// SetConfigFlags - Setup some window configuration flags
+// SetConfigFlags - Setup init configuration flags (view FLAGS)
 func SetConfigFlags(flags uint32) {
 	cflags := (C.uint)(flags)
 	C.SetConfigFlags(cflags)
@@ -993,7 +993,7 @@ func PlayAutomationEvent(event AutomationEvent) {
 	C.PlayAutomationEvent(*event.cptr())
 }
 
-// IsKeyPressed - Detect if a key has been pressed once
+// IsKeyPressed - Check if a key has been pressed once
 func IsKeyPressed(key int32) bool {
 	ckey := (C.int)(key)
 	ret := C.IsKeyPressed(ckey)
@@ -1001,7 +1001,7 @@ func IsKeyPressed(key int32) bool {
 	return v
 }
 
-// IsKeyPressedRepeat - Detect if a key has been pressed again (Only PLATFORM_DESKTOP)
+// IsKeyPressedRepeat - Check if a key has been pressed again
 func IsKeyPressedRepeat(key int32) bool {
 	ckey := (C.int)(key)
 	ret := C.IsKeyPressedRepeat(ckey)
@@ -1009,7 +1009,7 @@ func IsKeyPressedRepeat(key int32) bool {
 	return v
 }
 
-// IsKeyDown - Detect if a key is being pressed
+// IsKeyDown - Check if a key is being pressed
 func IsKeyDown(key int32) bool {
 	ckey := (C.int)(key)
 	ret := C.IsKeyDown(ckey)
@@ -1017,7 +1017,7 @@ func IsKeyDown(key int32) bool {
 	return v
 }
 
-// IsKeyReleased - Detect if a key has been released once
+// IsKeyReleased - Check if a key has been released once
 func IsKeyReleased(key int32) bool {
 	ckey := (C.int)(key)
 	ret := C.IsKeyReleased(ckey)
@@ -1025,7 +1025,7 @@ func IsKeyReleased(key int32) bool {
 	return v
 }
 
-// IsKeyUp - Detect if a key is NOT being pressed
+// IsKeyUp - Check if a key is NOT being pressed
 func IsKeyUp(key int32) bool {
 	ckey := (C.int)(key)
 	ret := C.IsKeyUp(ckey)
@@ -1033,14 +1033,14 @@ func IsKeyUp(key int32) bool {
 	return v
 }
 
-// GetKeyPressed - Get latest key pressed
+// GetKeyPressed - Get key pressed (keycode), call it multiple times for keys queued, returns 0 when the queue is empty
 func GetKeyPressed() int32 {
 	ret := C.GetKeyPressed()
 	v := (int32)(ret)
 	return v
 }
 
-// GetCharPressed - Get the last char pressed
+// GetCharPressed - Get char pressed (unicode), call it multiple times for chars queued, returns 0 when the queue is empty
 func GetCharPressed() int32 {
 	ret := C.GetCharPressed()
 	v := (int32)(ret)
@@ -1062,7 +1062,7 @@ func SetExitKey(key int32) {
 	C.SetExitKey(ckey)
 }
 
-// IsGamepadAvailable - Detect if a gamepad is available
+// IsGamepadAvailable - Check if a gamepad is available
 func IsGamepadAvailable(gamepad int32) bool {
 	cgamepad := (C.int)(gamepad)
 	ret := C.IsGamepadAvailable(cgamepad)
@@ -1070,7 +1070,7 @@ func IsGamepadAvailable(gamepad int32) bool {
 	return v
 }
 
-// GetGamepadName - Return gamepad internal name id
+// GetGamepadName - Get gamepad internal name id
 func GetGamepadName(gamepad int32) string {
 	cgamepad := (C.int)(gamepad)
 	ret := C.GetGamepadName(cgamepad)
@@ -1078,7 +1078,7 @@ func GetGamepadName(gamepad int32) string {
 	return v
 }
 
-// IsGamepadButtonPressed - Detect if a gamepad button has been pressed once
+// IsGamepadButtonPressed - Check if a gamepad button has been pressed once
 func IsGamepadButtonPressed(gamepad, button int32) bool {
 	cgamepad := (C.int)(gamepad)
 	cbutton := (C.int)(button)
@@ -1087,7 +1087,7 @@ func IsGamepadButtonPressed(gamepad, button int32) bool {
 	return v
 }
 
-// IsGamepadButtonDown - Detect if a gamepad button is being pressed
+// IsGamepadButtonDown - Check if a gamepad button is being pressed
 func IsGamepadButtonDown(gamepad, button int32) bool {
 	cgamepad := (C.int)(gamepad)
 	cbutton := (C.int)(button)
@@ -1096,7 +1096,7 @@ func IsGamepadButtonDown(gamepad, button int32) bool {
 	return v
 }
 
-// IsGamepadButtonReleased - Detect if a gamepad button has been released once
+// IsGamepadButtonReleased - Check if a gamepad button has been released once
 func IsGamepadButtonReleased(gamepad, button int32) bool {
 	cgamepad := (C.int)(gamepad)
 	cbutton := (C.int)(button)
@@ -1105,7 +1105,7 @@ func IsGamepadButtonReleased(gamepad, button int32) bool {
 	return v
 }
 
-// IsGamepadButtonUp - Detect if a gamepad button is NOT being pressed
+// IsGamepadButtonUp - Check if a gamepad button is NOT being pressed
 func IsGamepadButtonUp(gamepad, button int32) bool {
 	cgamepad := (C.int)(gamepad)
 	cbutton := (C.int)(button)
@@ -1121,7 +1121,7 @@ func GetGamepadButtonPressed() int32 {
 	return v
 }
 
-// GetGamepadAxisCount - Return gamepad axis count for a gamepad
+// GetGamepadAxisCount - Get gamepad axis count for a gamepad
 func GetGamepadAxisCount(gamepad int32) int32 {
 	cgamepad := (C.int)(gamepad)
 	ret := C.GetGamepadAxisCount(cgamepad)
@@ -1129,7 +1129,7 @@ func GetGamepadAxisCount(gamepad int32) int32 {
 	return v
 }
 
-// GetGamepadAxisMovement - Return axis movement value for a gamepad axis
+// GetGamepadAxisMovement - Get axis movement value for a gamepad axis
 func GetGamepadAxisMovement(gamepad, axis int32) float32 {
 	cgamepad := (C.int)(gamepad)
 	caxis := (C.int)(axis)
@@ -1152,7 +1152,7 @@ func SetGamepadVibration(gamepad int32, leftMotor, rightMotor, duration float32)
 	C.SetGamepadVibration(C.int(gamepad), C.float(leftMotor), C.float(rightMotor), C.float(duration))
 }
 
-// IsMouseButtonPressed - Detect if a mouse button has been pressed once
+// IsMouseButtonPressed - Check if a mouse button has been pressed once
 func IsMouseButtonPressed(button MouseButton) bool {
 	cbutton := (C.int)(button)
 	ret := C.IsMouseButtonPressed(cbutton)
@@ -1160,7 +1160,7 @@ func IsMouseButtonPressed(button MouseButton) bool {
 	return v
 }
 
-// IsMouseButtonDown - Detect if a mouse button is being pressed
+// IsMouseButtonDown - Check if a mouse button is being pressed
 func IsMouseButtonDown(button MouseButton) bool {
 	cbutton := (C.int)(button)
 	ret := C.IsMouseButtonDown(cbutton)
@@ -1168,7 +1168,7 @@ func IsMouseButtonDown(button MouseButton) bool {
 	return v
 }
 
-// IsMouseButtonReleased - Detect if a mouse button has been released once
+// IsMouseButtonReleased - Check if a mouse button has been released once
 func IsMouseButtonReleased(button MouseButton) bool {
 	cbutton := (C.int)(button)
 	ret := C.IsMouseButtonReleased(cbutton)
@@ -1176,7 +1176,7 @@ func IsMouseButtonReleased(button MouseButton) bool {
 	return v
 }
 
-// IsMouseButtonUp - Detect if a mouse button is NOT being pressed
+// IsMouseButtonUp - Check if a mouse button is NOT being pressed
 func IsMouseButtonUp(button MouseButton) bool {
 	cbutton := (C.int)(button)
 	ret := C.IsMouseButtonUp(cbutton)
@@ -1184,21 +1184,21 @@ func IsMouseButtonUp(button MouseButton) bool {
 	return v
 }
 
-// GetMouseX - Returns mouse position X
+// GetMouseX - Get mouse position X
 func GetMouseX() int32 {
 	ret := C.GetMouseX()
 	v := (int32)(ret)
 	return v
 }
 
-// GetMouseY - Returns mouse position Y
+// GetMouseY - Get mouse position Y
 func GetMouseY() int32 {
 	ret := C.GetMouseY()
 	v := (int32)(ret)
 	return v
 }
 
-// GetMousePosition - Returns mouse position XY
+// GetMousePosition - Get mouse position XY
 func GetMousePosition() Vector2 {
 	ret := C.GetMousePosition()
 	v := newVector2FromPointer(unsafe.Pointer(&ret))
@@ -1253,21 +1253,21 @@ func SetMouseCursor(cursor int32) {
 	C.SetMouseCursor(ccursor)
 }
 
-// GetTouchX - Returns touch position X for touch point 0 (relative to screen size)
+// GetTouchX - Get touch position X for touch point 0 (relative to screen size)
 func GetTouchX() int32 {
 	ret := C.GetTouchX()
 	v := (int32)(ret)
 	return v
 }
 
-// GetTouchY - Returns touch position Y for touch point 0 (relative to screen size)
+// GetTouchY - Get touch position Y for touch point 0 (relative to screen size)
 func GetTouchY() int32 {
 	ret := C.GetTouchY()
 	v := (int32)(ret)
 	return v
 }
 
-// GetTouchPosition - Returns touch position XY for a touch point index (relative to screen size)
+// GetTouchPosition - Get touch position XY for a touch point index (relative to screen size)
 func GetTouchPosition(index int32) Vector2 {
 	cindex := (C.int)(index)
 	ret := C.GetTouchPosition(cindex)

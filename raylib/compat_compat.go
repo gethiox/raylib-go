@@ -19,7 +19,7 @@ import (
 // Used by UnloadMesh() to determine if mesh is go-managed or C-allocated
 var goManagedMeshIDs = make([]uint32, 0)
 
-// UploadMesh - Upload vertex data into a VAO (if supported) and VBO
+// UploadMesh - Upload mesh vertex data in GPU and provide VAO/VBO ids
 func UploadMesh(mesh *Mesh, dynamic bool) {
 	// check if mesh has already been uploaded to prevent duplication
 	if mesh.VaoID != 0 {
@@ -47,7 +47,7 @@ func UploadMesh(mesh *Mesh, dynamic bool) {
 	goManagedMeshIDs = append(goManagedMeshIDs, mesh.VaoID)
 }
 
-// UnloadMesh - Unload mesh from memory (RAM and/or VRAM)
+// UnloadMesh - Unload mesh data from CPU and GPU
 func UnloadMesh(mesh *Mesh) {
 	// Check list of go-managed mesh IDs
 	if slices.Contains(goManagedMeshIDs, mesh.VaoID) {

@@ -687,7 +687,7 @@ func CloseWindow() {
 	closeWindow.Call(nil)
 }
 
-// WindowShouldClose - Check if application should close (KEY_ESCAPE pressed or windows close icon clicked)
+// WindowShouldClose - Check if application should close ([KeyEscape] pressed or windows close icon clicked)
 func WindowShouldClose() bool {
 	var ret ffi.Arg
 	windowShouldClose.Call(&ret)
@@ -708,28 +708,28 @@ func IsWindowFullscreen() bool {
 	return ret.Bool()
 }
 
-// IsWindowHidden - Check if window is currently hidden (only PLATFORM_DESKTOP)
+// IsWindowHidden - Check if window is currently hidden
 func IsWindowHidden() bool {
 	var ret ffi.Arg
 	isWindowHidden.Call(&ret)
 	return ret.Bool()
 }
 
-// IsWindowMinimized - Check if window is currently minimized (only PLATFORM_DESKTOP)
+// IsWindowMinimized - Check if window is currently minimized
 func IsWindowMinimized() bool {
 	var ret ffi.Arg
 	isWindowMinimized.Call(&ret)
 	return ret.Bool()
 }
 
-// IsWindowMaximized - Check if window is currently maximized (only PLATFORM_DESKTOP)
+// IsWindowMaximized - Check if window is currently maximized
 func IsWindowMaximized() bool {
 	var ret ffi.Arg
 	isWindowMaximized.Call(&ret)
 	return ret.Bool()
 }
 
-// IsWindowFocused - Check if window is currently focused (only PLATFORM_DESKTOP)
+// IsWindowFocused - Check if window is currently focused
 func IsWindowFocused() bool {
 	var ret ffi.Arg
 	isWindowFocused.Call(&ret)
@@ -750,7 +750,7 @@ func IsWindowState(flag uint32) bool {
 	return ret.Bool()
 }
 
-// SetWindowState - Set window configuration state using flags (only PLATFORM_DESKTOP)
+// SetWindowState - Set window configuration state using flags
 func SetWindowState(flags uint32) {
 	setWindowState.Call(nil, &flags)
 }
@@ -760,27 +760,27 @@ func ClearWindowState(flags uint32) {
 	clearWindowState.Call(nil, &flags)
 }
 
-// ToggleFullscreen - Toggle window state: fullscreen/windowed (only PLATFORM_DESKTOP)
+// ToggleFullscreen - Toggle window state: fullscreen/windowed, resizes monitor to match window resolution
 func ToggleFullscreen() {
 	toggleFullscreen.Call(nil)
 }
 
-// ToggleBorderlessWindowed - Toggle window state: borderless windowed (only PLATFORM_DESKTOP)
+// ToggleBorderlessWindowed - Toggle window state: borderless windowed, resizes window to match monitor resolution
 func ToggleBorderlessWindowed() {
 	toggleBorderlessWindowed.Call(nil)
 }
 
-// MaximizeWindow - Set window state: maximized, if resizable (only PLATFORM_DESKTOP)
+// MaximizeWindow - Set window state: maximized, if resizable
 func MaximizeWindow() {
 	maximizeWindow.Call(nil)
 }
 
-// MinimizeWindow - Set window state: minimized, if resizable (only PLATFORM_DESKTOP)
+// MinimizeWindow - Set window state: minimized, if resizable
 func MinimizeWindow() {
 	minimizeWindow.Call(nil)
 }
 
-// RestoreWindow - Set window state: not minimized/maximized (only PLATFORM_DESKTOP)
+// RestoreWindow - Restore window from being minimized/maximized
 func RestoreWindow() {
 	restoreWindow.Call(nil)
 }
@@ -796,13 +796,13 @@ func SetWindowIcons(images []Image, count int32) {
 	setWindowIcons.Call(nil, &imagesPtr, &count)
 }
 
-// SetWindowTitle - Set title for window (only PLATFORM_DESKTOP and PLATFORM_WEB)
+// SetWindowTitle - Set title for window
 func SetWindowTitle(title string) {
 	titlePtr := convert.ToBytePtr(title)
 	setWindowTitle.Call(nil, &titlePtr)
 }
 
-// SetWindowPosition - Set window position on screen (only PLATFORM_DESKTOP)
+// SetWindowPosition - Set window position on screen
 func SetWindowPosition(x, y int) {
 	posX, posY := int32(x), int32(y)
 	setWindowPosition.Call(nil, &posX, &posY)
@@ -832,12 +832,12 @@ func SetWindowSize(width int, height int) {
 	setWindowSize.Call(nil, &w, &h)
 }
 
-// SetWindowOpacity - Set window opacity [0.0f..1.0f] (only PLATFORM_DESKTOP)
+// SetWindowOpacity - Set window opacity [0.0f..1.0f]
 func SetWindowOpacity(opacity float32) {
 	setWindowOpacity.Call(nil, &opacity)
 }
 
-// SetWindowFocused - Set window focused (only PLATFORM_DESKTOP)
+// SetWindowFocused - Set window focused
 func SetWindowFocused() {
 	setWindowFocused.Call(nil)
 }
@@ -976,7 +976,7 @@ func GetClipboardText() string {
 
 // GetClipboardImage - Get clipboard image content
 //
-// Only works with SDL3 backend or Windows with RGFW/GLFW
+// NOTE: This function doesn't work on all platforms/backends.
 func GetClipboardImage() Image {
 	var ret Image
 	getClipboardImage.Call(&ret)
@@ -1267,7 +1267,7 @@ func GetFrameTime() float32 {
 	return ret
 }
 
-// GetTime - Get elapsed time in seconds since InitWindow()
+// GetTime - Get elapsed time in seconds since [InitWindow]
 func GetTime() float64 {
 	var ret float64
 	getTime.Call(&ret)
@@ -1431,7 +1431,7 @@ func IsKeyPressed(key int32) bool {
 	return ret.Bool()
 }
 
-// IsKeyPressedRepeat - Check if a key has been pressed again (Only PLATFORM_DESKTOP)
+// IsKeyPressedRepeat - Check if a key has been pressed again
 func IsKeyPressedRepeat(key int32) bool {
 	var ret ffi.Arg
 	isKeyPressedRepeat.Call(&ret, &key)
@@ -2120,6 +2120,8 @@ func CheckCollisionPointLine(point, p1, p2 Vector2, threshold int32) bool {
 }
 
 // CheckCollisionPointPoly - Check if point is within a polygon described by array of vertices
+//
+// NOTE: Based on http://jeffreythompson.org/collision-detection/poly-point.php
 func CheckCollisionPointPoly(point Vector2, points []Vector2) bool {
 	var ret ffi.Arg
 	pointCount := int32(len(points))
@@ -2689,10 +2691,10 @@ func UnloadRenderTexture(target RenderTexture2D) {
 	unloadRenderTexture.Call(nil, &target)
 }
 
-// UpdateTexture - Update GPU texture with new data ([]color.RGBA, *image.RGBA or []byte)
-func UpdateTexture(texture Texture2D, pixels any) {
+// UpdateTexture - Update GPU texture with new data (pixels should be able to fill texture)
+func UpdateTexture[T []color.RGBA | *image.RGBA | []byte](texture Texture2D, pixels T) {
 	var cpixels unsafe.Pointer
-	switch p := pixels.(type) {
+	switch p := any(pixels).(type) {
 	case []color.RGBA:
 		cpixels = unsafe.Pointer(&p[0])
 	case *image.RGBA:
@@ -2703,10 +2705,10 @@ func UpdateTexture(texture Texture2D, pixels any) {
 	updateTexture.Call(nil, &texture, &cpixels)
 }
 
-// UpdateTextureRec - Update GPU texture rectangle with new data
-func UpdateTextureRec(texture Texture2D, rec Rectangle, pixels any) {
+// UpdateTextureRec - Update GPU texture rectangle with new data (pixels and rec should fit in texture)
+func UpdateTextureRec[T []color.RGBA | *image.RGBA | []byte](texture Texture2D, rec Rectangle, pixels T) {
 	var cpixels unsafe.Pointer
-	switch p := pixels.(type) {
+	switch p := any(pixels).(type) {
 	case []color.RGBA:
 		cpixels = unsafe.Pointer(&p[0])
 	case *image.RGBA:
@@ -3804,11 +3806,11 @@ func UnloadAudioStream(stream AudioStream) {
 	unloadAudioStream.Call(nil, &stream)
 }
 
-// UpdateAudioStream - Update audio stream buffers with data ([]float32 or []int16)
-func UpdateAudioStream(stream AudioStream, data any) {
+// UpdateAudioStream - Update audio stream buffers with data
+func UpdateAudioStream[T float32 | int16](stream AudioStream, data []T) {
 	var dataPtr unsafe.Pointer
 	var frameCount int32
-	switch d := data.(type) {
+	switch d := any(data).(type) {
 	case []float32:
 		dataPtr = unsafe.Pointer(&d[0])
 		frameCount = int32(len(d))

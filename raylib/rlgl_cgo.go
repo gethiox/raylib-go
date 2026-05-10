@@ -33,7 +33,7 @@ func EndShaderMode() {
 	C.EndShaderMode()
 }
 
-// BeginBlendMode - Begin blending mode (alpha, additive, multiplied)
+// BeginBlendMode - Begin blending mode (alpha, additive, multiplied, subtract, custom)
 func BeginBlendMode(mode BlendMode) {
 	cmode := (C.int)(mode)
 	C.BeginBlendMode(cmode)
@@ -652,13 +652,13 @@ func UnloadVertexArray(vaoId uint32) {
 	C.rlUnloadVertexArray(C.uint(vaoId))
 }
 
-// UnloadVertexBuffer .
+// UnloadVertexBuffer - Unload vertex buffer object
 func UnloadVertexBuffer(vboId uint32) {
 	cvboId := C.uint(vboId)
 	C.rlUnloadVertexBuffer(cvboId)
 }
 
-// SetVertexAttributeDivisor .
+// SetVertexAttributeDivisor - Set vertex attribute data divisor
 func SetVertexAttributeDivisor(index uint32, divisor int32) {
 	cindex := C.uint(index)
 	cdivisor := C.int(divisor)
