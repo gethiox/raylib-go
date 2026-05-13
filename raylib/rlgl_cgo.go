@@ -33,7 +33,7 @@ func EndShaderMode() {
 	C.EndShaderMode()
 }
 
-// BeginBlendMode - Begin blending mode (alpha, additive, multiplied)
+// BeginBlendMode - Begin blending mode (alpha, additive, multiplied, subtract, custom)
 func BeginBlendMode(mode BlendMode) {
 	cmode := (C.int)(mode)
 	C.BeginBlendMode(cmode)
@@ -263,6 +263,16 @@ func DisableVertexAttribute(index uint32) {
 	C.rlDisableVertexAttribute(cindex)
 }
 
+// EnableStatePointer - Enable attribute state pointer
+func EnableStatePointer(vertexAttribType int32, buffer unsafe.Pointer) {
+	C.rlEnableStatePointer(C.int(vertexAttribType), buffer)
+}
+
+// DisableStatePointer - Disable attribute state pointer
+func DisableStatePointer(vertexAttribType int32) {
+	C.rlDisableStatePointer(C.int(vertexAttribType))
+}
+
 // ActiveTextureSlot - Select and active a texture slot
 func ActiveTextureSlot(slot int32) {
 	cslot := C.int(slot)
@@ -420,6 +430,12 @@ func Scissor(x int32, y int32, width int32, height int32) {
 	C.rlScissor(cx, cy, cwidth, cheight)
 }
 
+// GetPointSize - Get the point drawing size
+func GetPointSize() float32 {
+	ret := C.rlGetPointSize()
+	return float32(ret)
+}
+
 // EnableWireMode - Enable wire mode
 func EnableWireMode() {
 	C.rlEnableWireMode()
@@ -428,6 +444,16 @@ func EnableWireMode() {
 // EnablePointMode - Enable point mode
 func EnablePointMode() {
 	C.rlEnablePointMode()
+}
+
+// DisablePointMode - Disable point mode
+func DisablePointMode() {
+	C.rlDisablePointMode()
+}
+
+// SetPointSize - Set the point drawing size
+func SetPointSize(size float32) {
+	C.rlSetPointSize(C.float(size))
 }
 
 // DisableWireMode - Disable wire mode
@@ -472,7 +498,7 @@ func IsStereoRenderEnabled() bool {
 }
 
 // ClearColor - Clear color buffer with color
-func ClearColor(r uint8, g uint8, b uint8, a uint8) {
+func ClearColor(r, g, b, a uint8) {
 	cr := C.uchar(r)
 	cg := C.uchar(g)
 	cb := C.uchar(b)
@@ -497,7 +523,7 @@ func SetBlendMode(mode BlendMode) {
 }
 
 // SetBlendFactors - Set blending mode factor and equation (using OpenGL factors)
-func SetBlendFactors(glSrcFactor int32, glDstFactor int32, glEquation int32) {
+func SetBlendFactors(glSrcFactor, glDstFactor, glEquation int32) {
 	cglSrcFactor := C.int(glSrcFactor)
 	cglDstFactor := C.int(glDstFactor)
 	cglEquation := C.int(glEquation)
@@ -505,7 +531,7 @@ func SetBlendFactors(glSrcFactor int32, glDstFactor int32, glEquation int32) {
 }
 
 // SetBlendFactorsSeparate - Set blending mode factors and equations separately (using OpenGL factors)
-func SetBlendFactorsSeparate(glSrcRGB int32, glDstRGB int32, glSrcAlpha int32, glDstAlpha int32, glEqRGB int32, glEqAlpha int32) {
+func SetBlendFactorsSeparate(glSrcRGB, glDstRGB, glSrcAlpha, glDstAlpha, glEqRGB, glEqAlpha int32) {
 	cglSrcRGB := C.int(glSrcRGB)
 	cglDstRGB := C.int(glDstRGB)
 	cglSrcAlpha := C.int(glSrcAlpha)
@@ -525,6 +551,13 @@ func GlInit(width int32, height int32) {
 // GlClose - De-inititialize rlgl (buffers, shaders, textures)
 func GlClose() {
 	C.rlglClose()
+}
+
+// GetProcAddress - Get OpenGL procedure address
+func GetProcAddress(procName string) unsafe.Pointer {
+	cprocName := C.CString(procName)
+	defer C.free(unsafe.Pointer(cprocName))
+	return C.rlGetProcAddress(cprocName)
 }
 
 // GetVersion - Get current OpenGL version
@@ -562,6 +595,13 @@ func GetTextureIdDefault() uint32 {
 // GetShaderIdDefault - Get default shader id
 func GetShaderIdDefault() uint32 {
 	return uint32(C.rlGetShaderIdDefault())
+}
+
+// GetShaderLocsDefault - Get default shader locations
+func GetShaderLocsDefault() []int32 {
+	ret := C.rlGetShaderLocsDefault()
+	// the default value of RL_MAX_SHADER_LOCATIONS is 32
+	return unsafe.Slice((*int32)(unsafe.Pointer(ret)), 32)
 }
 
 // LoadRenderBatch - Load a render batch system
@@ -607,13 +647,18 @@ func LoadVertexArray() uint32 {
 	return uint32(C.rlLoadVertexArray())
 }
 
-// UnloadVertexBuffer .
+// UnloadVertexArray - Unload vertex array (vao)
+func UnloadVertexArray(vaoId uint32) {
+	C.rlUnloadVertexArray(C.uint(vaoId))
+}
+
+// UnloadVertexBuffer - Unload vertex buffer object
 func UnloadVertexBuffer(vboId uint32) {
 	cvboId := C.uint(vboId)
 	C.rlUnloadVertexBuffer(cvboId)
 }
 
-// SetVertexAttributeDivisor .
+// SetVertexAttributeDivisor - Set vertex attribute data divisor
 func SetVertexAttributeDivisor(index uint32, divisor int32) {
 	cindex := C.uint(index)
 	cdivisor := C.int(divisor)
@@ -702,7 +747,7 @@ func DrawVertexArrayElements(offset int32, count int32, buffer unsafe.Pointer) {
 }
 
 // DrawVertexArrayInstanced - Draw vertex array (currently active vao) with instancing
-func DrawVertexArrayInstanced(offset int32, count int32, instances int32) {
+func DrawVertexArrayInstanced(offset, count, instances int32) {
 	coffset := C.int(offset)
 	ccount := C.int(count)
 	cinstances := C.int(instances)
@@ -733,13 +778,13 @@ func LoadFramebuffer() uint32 {
 }
 
 // FramebufferAttach - Attach texture/renderbuffer to a framebuffer
-func FramebufferAttach(fboId uint32, texId uint32, attachType int32, texType int32, mipLevel int32) {
-	cfboId := C.uint(fboId)
+func FramebufferAttach(id, texId uint32, attachType, texType, mipLevel int32) {
+	cid := C.uint(id)
 	ctexId := C.uint(texId)
 	cattachType := C.int(attachType)
 	ctexType := C.int(texType)
 	cmipLevel := C.int(mipLevel)
-	C.rlFramebufferAttach(cfboId, ctexId, cattachType, ctexType, cmipLevel)
+	C.rlFramebufferAttach(cid, ctexId, cattachType, ctexType, cmipLevel)
 }
 
 // FramebufferComplete - Verify framebuffer is complete
@@ -754,28 +799,53 @@ func UnloadFramebuffer(id uint32) {
 	C.rlUnloadFramebuffer(cid)
 }
 
-// LoadShaderCode - Load shader from code strings
-func LoadShaderCode(vsCode string, fsCode string) uint32 {
+// CopyFramebuffer - Copy framebuffer pixel data to internal buffer
+//
+// WARNING: Copy and resize framebuffer functionality only defined for software backend
+func CopyFramebuffer(x, y, width, height, format int32, pixels unsafe.Pointer) {
+	C.rlCopyFramebuffer(C.int(x), C.int(y), C.int(width), C.int(height), C.int(format), pixels)
+}
+
+// ResizeFramebuffer - Resize internal framebuffer
+//
+// WARNING: Copy and resize framebuffer functionality only defined for software backend
+func ResizeFramebuffer(width, height int32) {
+	C.rlResizeFramebuffer(C.int(width), C.int(height))
+}
+
+// LoadShaderId - Load (compile) shader and return shader id (type: [VertexShader], [FragmentShader], [ComputeShader])
+func LoadShaderId(code string, shaderType int32) uint32 {
+	ccode := C.CString(code)
+	defer C.free(unsafe.Pointer(ccode))
+	ret := C.rlLoadShader(ccode, C.int(shaderType))
+	return uint32(ret)
+}
+
+// LoadShaderProgram - Load shader from code strings
+func LoadShaderProgram(vsCode, fsCode string) uint32 {
 	cvsCode := C.CString(vsCode)
 	defer C.free(unsafe.Pointer(cvsCode))
 	cfsCode := C.CString(fsCode)
 	defer C.free(unsafe.Pointer(cfsCode))
-	return uint32(C.rlLoadShaderCode(cvsCode, cfsCode))
+	ret := C.rlLoadShaderProgram(cvsCode, cfsCode)
+	return uint32(ret)
 }
 
-// CompileShader - Compile custom shader and return shader id (type: VERTEX_SHADER, FRAGMENT_SHADER, COMPUTE_SHADER)
-func CompileShader(shaderCode string, type_ int32) uint32 {
-	cshaderCode := C.CString(shaderCode)
-	defer C.free(unsafe.Pointer(cshaderCode))
-	ctype_ := C.int(type_)
-	return uint32(C.rlCompileShader(cshaderCode, ctype_))
+// LoadShaderProgramEx - Load shader program, using already loaded shader ids
+func LoadShaderProgramEx(vsId, fsId uint32) uint32 {
+	ret := C.rlLoadShaderProgramEx(C.uint(vsId), C.uint(fsId))
+	return uint32(ret)
 }
 
-// LoadShaderProgram - Load custom shader program
-func LoadShaderProgram(vShaderId uint32, fShaderId uint32) uint32 {
-	cvShaderId := C.uint(vShaderId)
-	cfShaderId := C.uint(fShaderId)
-	return uint32(C.rlLoadShaderProgram(cvShaderId, cfShaderId))
+// LoadShaderProgramCompute - Load compute shader program
+func LoadShaderProgramCompute(csId uint32) uint32 {
+	ret := C.rlLoadShaderProgramCompute(C.uint(csId))
+	return uint32(ret)
+}
+
+// UnloadShaderId - Unload shader, loaded with [LoadShaderId]
+func UnloadShaderId(id uint32) {
+	C.rlUnloadShader(C.uint(id))
 }
 
 // UnloadShaderProgram - Unload shader program
@@ -784,34 +854,25 @@ func UnloadShaderProgram(id uint32) {
 	C.rlUnloadShaderProgram(cid)
 }
 
-// GetLocationUniform - Get shader location uniform
-func GetLocationUniform(shaderId uint32, uniformName string) int32 {
-	cshaderId := C.uint(shaderId)
+// GetLocationUniform - Get shader location uniform, requires shader program id
+func GetLocationUniform(id uint32, uniformName string) int32 {
+	cid := C.uint(id)
 	cuniformName := C.CString(uniformName)
 	defer C.free(unsafe.Pointer(cuniformName))
-	return int32(C.rlGetLocationUniform(cshaderId, cuniformName))
+	return int32(C.rlGetLocationUniform(cid, cuniformName))
 }
 
-// GetLocationAttrib - Get shader location attribute
-func GetLocationAttrib(shaderId uint32, attribName string) int32 {
-	cshaderId := C.uint(shaderId)
+// GetLocationAttrib - Get shader location attribute, requires shader program id
+func GetLocationAttrib(id uint32, attribName string) int32 {
+	cid := C.uint(id)
 	cattribName := C.CString(attribName)
 	defer C.free(unsafe.Pointer(cattribName))
-	return int32(C.rlGetLocationAttrib(cshaderId, cattribName))
+	return int32(C.rlGetLocationAttrib(cid, cattribName))
 }
 
 // SetUniform - Set shader value uniform ([]float32, []int32, []uint32)
-func SetUniform(locIndex int32, value any, uniformType, count int32) {
-	var cvalue unsafe.Pointer
-	switch v := value.(type) {
-	case []float32:
-		cvalue = unsafe.Pointer(unsafe.SliceData(v))
-	case []int32:
-		cvalue = unsafe.Pointer(unsafe.SliceData(v))
-	case []uint32:
-		cvalue = unsafe.Pointer(unsafe.SliceData(v))
-	}
-	C.rlSetUniform(C.int(locIndex), cvalue, C.int(uniformType), C.int((count)))
+func SetUniform[T ~float32 | ~int32 | ~uint32](locIndex int32, value []T, uniformType, count int32) {
+	C.rlSetUniform(C.int(locIndex), unsafe.Pointer(unsafe.SliceData(value)), C.int(uniformType), C.int(count))
 }
 
 // SetUniformMatrix - Set shader value matrix
@@ -833,10 +894,9 @@ func SetUniformSampler(locIndex int32, textureId uint32) {
 	C.rlSetUniformSampler(clocIndex, ctextureId)
 }
 
-// LoadComputeShaderProgram -
-func LoadComputeShaderProgram(shaderID uint32) uint32 {
-	cshaderID := C.uint(shaderID)
-	return uint32(C.rlLoadComputeShaderProgram(cshaderID))
+// SetShader - Set shader currently active (id and locations)
+func SetShader(id uint32, locs *int32) {
+	C.rlSetShader(C.uint(id), (*C.int)(unsafe.Pointer(locs)))
 }
 
 // ComputeShaderDispatch - Dispatch compute shader (equivalent to *draw* for graphics pilepine)

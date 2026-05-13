@@ -100,6 +100,14 @@ func DrawTriangle3D(v1 Vector3, v2 Vector3, v3 Vector3, col color.RGBA) {
 	C.DrawTriangle3D(*cv1, *cv2, *cv3, *ccolor)
 }
 
+// DrawTriangleStrip3D - Draw a triangle strip defined by points
+func DrawTriangleStrip3D(points []Vector3, col color.RGBA) {
+	cpointsCount := (C.int)(len(points))
+	ccolor := colorCptr(col)
+	cpoints := (*C.Vector3)(unsafe.Pointer(&points[0]))
+	C.DrawTriangleStrip3D(cpoints, cpointsCount, *ccolor)
+}
+
 // DrawCube - Draw cube
 func DrawCube(position Vector3, width float32, height float32, length float32, col color.RGBA) {
 	cposition := position.cptr()
@@ -252,7 +260,7 @@ func DrawGrid(slices int32, spacing float32) {
 	C.DrawGrid(cslices, cspacing)
 }
 
-// LoadModel - Load model from file
+// LoadModel - Load model from files (meshes and materials)
 func LoadModel(fileName string) Model {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -261,10 +269,10 @@ func LoadModel(fileName string) Model {
 	return v
 }
 
-// LoadModelFromMesh - Load model from mesh data
-func LoadModelFromMesh(data Mesh) Model {
-	cdata := data.cptr()
-	ret := C.LoadModelFromMesh(*cdata)
+// LoadModelFromMesh - Load model from generated mesh (default material)
+func LoadModelFromMesh(mesh Mesh) Model {
+	cmesh := mesh.cptr()
+	ret := C.LoadModelFromMesh(*cmesh)
 	v := newModelFromPointer(unsafe.Pointer(&ret))
 	return v
 }
@@ -277,13 +285,13 @@ func IsModelValid(model Model) bool {
 	return v
 }
 
-// UnloadModel - Unload model from memory (RAM and/or VRAM)
+// UnloadModel - Unload model (including meshes) from memory (RAM and/or VRAM)
 func UnloadModel(model Model) {
 	cmodel := model.cptr()
 	C.UnloadModel(*cmodel)
 }
 
-// GetModelBoundingBox - Compute model bounding box limits (considers all meshes
+// GetModelBoundingBox - Compute model bounding box limits (considers all meshes)
 func GetModelBoundingBox(model Model) BoundingBox {
 	cmodel := model.cptr()
 	ret := C.GetModelBoundingBox(*cmodel)
@@ -331,26 +339,6 @@ func DrawModelWiresEx(model Model, position Vector3, rotationAxis Vector3, rotat
 	C.DrawModelWiresEx(*cmodel, *cposition, *crotationAxis, crotationAngle, *cscale, *ctint)
 }
 
-// DrawModelPoints - Draw a model as points
-func DrawModelPoints(model Model, position Vector3, scale float32, tint color.RGBA) {
-	cmodel := model.cptr()
-	cposition := position.cptr()
-	cscale := (C.float)(scale)
-	ctint := colorCptr(tint)
-	C.DrawModelPoints(*cmodel, *cposition, cscale, *ctint)
-}
-
-// DrawModelPointsEx - Draw a model as points with extended parameters
-func DrawModelPointsEx(model Model, position Vector3, rotationAxis Vector3, rotationAngle float32, scale Vector3, tint color.RGBA) {
-	cmodel := model.cptr()
-	cposition := position.cptr()
-	crotationAxis := rotationAxis.cptr()
-	crotationAngle := (C.float)(rotationAngle)
-	cscale := scale.cptr()
-	ctint := colorCptr(tint)
-	C.DrawModelPointsEx(*cmodel, *cposition, *crotationAxis, crotationAngle, *cscale, *ctint)
-}
-
 // DrawBoundingBox - Draw bounding box (wires)
 func DrawBoundingBox(box BoundingBox, col color.RGBA) {
 	cbox := box.cptr()
@@ -359,38 +347,38 @@ func DrawBoundingBox(box BoundingBox, col color.RGBA) {
 }
 
 // DrawBillboard - Draw a billboard texture
-func DrawBillboard(camera Camera, texture Texture2D, center Vector3, scale float32, tint color.RGBA) {
+func DrawBillboard(camera Camera, texture Texture2D, position Vector3, scale float32, tint color.RGBA) {
 	ccamera := camera.cptr()
 	ctexture := texture.cptr()
-	ccenter := center.cptr()
+	cposition := position.cptr()
 	cscale := (C.float)(scale)
 	ctint := colorCptr(tint)
-	C.DrawBillboard(*ccamera, *ctexture, *ccenter, cscale, *ctint)
+	C.DrawBillboard(*ccamera, *ctexture, *cposition, cscale, *ctint)
 }
 
-// DrawBillboardRec - Draw a billboard texture defined by sourceRec
-func DrawBillboardRec(camera Camera, texture Texture2D, sourceRec Rectangle, center Vector3, size Vector2, tint color.RGBA) {
+// DrawBillboardRec - Draw a billboard texture defined by source
+func DrawBillboardRec(camera Camera, texture Texture2D, source Rectangle, position Vector3, size Vector2, tint color.RGBA) {
 	ccamera := camera.cptr()
 	ctexture := texture.cptr()
-	csourceRec := sourceRec.cptr()
-	ccenter := center.cptr()
+	csource := source.cptr()
+	cposition := position.cptr()
 	csize := size.cptr()
 	ctint := colorCptr(tint)
-	C.DrawBillboardRec(*ccamera, *ctexture, *csourceRec, *ccenter, *csize, *ctint)
+	C.DrawBillboardRec(*ccamera, *ctexture, *csource, *cposition, *csize, *ctint)
 }
 
-// DrawBillboardPro - Draw a billboard texture with pro parameters
-func DrawBillboardPro(camera Camera, texture Texture2D, sourceRec Rectangle, position Vector3, up Vector3, size Vector2, origin Vector2, rotation float32, tint Color) {
+// DrawBillboardPro - Draw a billboard texture defined by source and rotation
+func DrawBillboardPro(camera Camera, texture Texture2D, source Rectangle, position Vector3, up Vector3, size Vector2, origin Vector2, rotation float32, tint color.RGBA) {
 	ccamera := camera.cptr()
 	ctexture := texture.cptr()
-	csourceRec := sourceRec.cptr()
+	csource := source.cptr()
 	cposition := position.cptr()
 	cup := up.cptr()
 	csize := size.cptr()
 	corigin := origin.cptr()
 	crotation := (C.float)(rotation)
 	ctint := colorCptr(tint)
-	C.DrawBillboardPro(*ccamera, *ctexture, *csourceRec, *cposition, *cup, *csize, *corigin, crotation, *ctint)
+	C.DrawBillboardPro(*ccamera, *ctexture, *csource, *cposition, *cup, *csize, *corigin, crotation, *ctint)
 }
 
 // UpdateMeshBuffer - Update mesh vertex data in GPU for a specific buffer index
@@ -401,22 +389,24 @@ func UpdateMeshBuffer(mesh Mesh, index int, data []byte, offset int) {
 	C.UpdateMeshBuffer(*mesh.cptr(), cindex, unsafe.Pointer(&data[0]), cdataSize, coffset)
 }
 
-// DrawMesh - Draw a single mesh
+// DrawMesh - Draw a 3d mesh with material and transform
 func DrawMesh(mesh Mesh, material Material, transform Matrix) {
 	C.DrawMesh(*mesh.cptr(), *material.cptr(), *transform.cptr())
 }
 
-// DrawMeshInstanced - Draw mesh with instanced rendering
+// DrawMeshInstanced - Draw multiple mesh instances with material and different transforms
 func DrawMeshInstanced(mesh Mesh, material Material, transforms []Matrix, instances int) {
 	C.DrawMeshInstanced(*mesh.cptr(), *material.cptr(), transforms[0].cptr(), C.int(instances))
 }
 
-// ExportMesh - Export mesh as an OBJ file
-func ExportMesh(mesh Mesh, fileName string) {
+// ExportMesh - Export mesh data to file, returns true on success
+func ExportMesh(mesh Mesh, fileName string) bool {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
 	cmesh := mesh.cptr()
-	C.ExportMesh(*cmesh, cfileName)
+	ret := C.ExportMesh(*cmesh, cfileName)
+	v := bool(ret)
+	return v
 }
 
 // GetMeshBoundingBox - Compute mesh bounding box limits
@@ -425,6 +415,12 @@ func GetMeshBoundingBox(mesh Mesh) BoundingBox {
 	ret := C.GetMeshBoundingBox(*cmesh)
 	v := newBoundingBoxFromPointer(unsafe.Pointer(&ret))
 	return v
+}
+
+// GenMeshTangents - Compute mesh tangents
+func GenMeshTangents(mesh *Mesh) {
+	cmesh := mesh.cptr()
+	C.GenMeshTangents(cmesh)
 }
 
 // GenMeshPoly - Generate polygonal mesh
@@ -539,16 +535,16 @@ func GenMeshHeightmap(heightmap Image, size Vector3) Mesh {
 }
 
 // GenMeshCubicmap - Generate cubes-based map mesh from image data
-func GenMeshCubicmap(cubicmap Image, size Vector3) Mesh {
+func GenMeshCubicmap(cubicmap Image, cubeSize Vector3) Mesh {
 	ccubicmap := cubicmap.cptr()
-	csize := size.cptr()
+	ccubeSize := cubeSize.cptr()
 
-	ret := C.GenMeshCubicmap(*ccubicmap, *csize)
+	ret := C.GenMeshCubicmap(*ccubicmap, *ccubeSize)
 	v := newMeshFromPointer(unsafe.Pointer(&ret))
 	return v
 }
 
-// LoadMaterials - Load material data (.MTL)
+// LoadMaterials - Load materials from model file
 func LoadMaterials(fileName string) []Material {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -573,7 +569,7 @@ func IsMaterialValid(material Material) bool {
 	return v
 }
 
-// UnloadMaterial - Unload material textures from VRAM
+// UnloadMaterial - Unload material from GPU memory (VRAM)
 func UnloadMaterial(material Material) {
 	cmaterial := material.cptr()
 	C.UnloadMaterial(*cmaterial)
@@ -605,26 +601,20 @@ func LoadModelAnimations(fileName string) []ModelAnimation {
 	return v
 }
 
-// UpdateModelAnimation - Update model animation pose (CPU)
-func UpdateModelAnimation(model Model, anim ModelAnimation, frame int32) {
+// UpdateModelAnimation - Update model animation pose (vertex buffers and bone matrices)
+func UpdateModelAnimation(model Model, anim ModelAnimation, frame float32) {
 	cmodel := model.cptr()
 	canim := anim.cptr()
-	cframe := (C.int)(frame)
+	cframe := (C.float)(frame)
 	C.UpdateModelAnimation(*cmodel, *canim, cframe)
 }
 
-// UpdateModelAnimationBones - Update model animation mesh bone matrices (GPU skinning)
-func UpdateModelAnimationBones(model Model, anim ModelAnimation, frame int32) {
+// UpdateModelAnimationEx - Update model animation pose, blending two animations
+func UpdateModelAnimationEx(model Model, animA ModelAnimation, frameA float32, animB ModelAnimation, frameB, blend float32) {
 	cmodel := model.cptr()
-	canim := anim.cptr()
-	cframe := (C.int)(frame)
-	C.UpdateModelAnimationBones(*cmodel, *canim, cframe)
-}
-
-// UnloadModelAnimation - Unload animation data
-func UnloadModelAnimation(anim ModelAnimation) {
-	canim := anim.cptr()
-	C.UnloadModelAnimation(*canim)
+	canimA := animA.cptr()
+	canimB := animB.cptr()
+	C.UpdateModelAnimationEx(*cmodel, *canimA, C.float(frameA), *canimB, C.float(frameB), C.float(blend))
 }
 
 // UnloadModelAnimations - Unload animation array data
@@ -641,18 +631,18 @@ func IsModelAnimationValid(model Model, anim ModelAnimation) bool {
 	return v
 }
 
-// CheckCollisionSpheres - Detect collision between two spheres
-func CheckCollisionSpheres(centerA Vector3, radiusA float32, centerB Vector3, radiusB float32) bool {
-	ccenterA := centerA.cptr()
-	cradiusA := (C.float)(radiusA)
-	ccenterB := centerB.cptr()
-	cradiusB := (C.float)(radiusB)
-	ret := C.CheckCollisionSpheres(*ccenterA, cradiusA, *ccenterB, cradiusB)
+// CheckCollisionSpheres - Check collision between two spheres
+func CheckCollisionSpheres(center1 Vector3, radius1 float32, center2 Vector3, radius2 float32) bool {
+	ccenter1 := center1.cptr()
+	cradius1 := (C.float)(radius1)
+	ccenter2 := center2.cptr()
+	cradius2 := (C.float)(radius2)
+	ret := C.CheckCollisionSpheres(*ccenter1, cradius1, *ccenter2, cradius2)
 	v := bool(ret)
 	return v
 }
 
-// CheckCollisionBoxes - Detect collision between two bounding boxes
+// CheckCollisionBoxes - Check collision between two bounding boxes
 func CheckCollisionBoxes(box1 BoundingBox, box2 BoundingBox) bool {
 	cbox1 := box1.cptr()
 	cbox2 := box2.cptr()
@@ -661,12 +651,12 @@ func CheckCollisionBoxes(box1 BoundingBox, box2 BoundingBox) bool {
 	return v
 }
 
-// CheckCollisionBoxSphere - Detect collision between box and sphere
-func CheckCollisionBoxSphere(box BoundingBox, centerSphere Vector3, radiusSphere float32) bool {
+// CheckCollisionBoxSphere - Check collision between box and sphere
+func CheckCollisionBoxSphere(box BoundingBox, center Vector3, radius float32) bool {
 	cbox := box.cptr()
-	ccenterSphere := centerSphere.cptr()
-	cradiusSphere := (C.float)(radiusSphere)
-	ret := C.CheckCollisionBoxSphere(*cbox, *ccenterSphere, cradiusSphere)
+	ccenter := center.cptr()
+	cradius := (C.float)(radius)
+	ret := C.CheckCollisionBoxSphere(*cbox, *ccenter, cradius)
 	v := bool(ret)
 	return v
 }

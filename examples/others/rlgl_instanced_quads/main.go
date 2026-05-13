@@ -141,7 +141,7 @@ func main() {
 	// -----------------------------------------------------------------
 	// Custom shader
 	// -----------------------------------------------------------------
-	shaderID := rl.LoadShaderCode(vertexShaderCode, fragmentShaderCode)
+	shaderID := rl.LoadShaderProgram(vertexShaderCode, fragmentShaderCode)
 	defer rl.UnloadShaderProgram(shaderID)
 	mvpLoc := rl.GetLocationUniform(shaderID, "mvp")
 

@@ -108,7 +108,7 @@ type VertexBuffer struct {
 
 // DrawCall - Draw call type
 // NOTE: Only texture changes register a new draw, other state-change-related elements are not
-// used at this moment (vaoId, shaderId, matrices), raylib just forces a batch draw call if any
+// used at this moment (vaoId, shaderId, matrices), raylib forces a batch draw call if any
 // of those state-change happens (this is done in core module)
 type DrawCall struct {
 	Mode            int32
@@ -129,11 +129,13 @@ type RenderBatch struct {
 
 // OpenGL version
 const (
-	Opengl11   int32 = 1
-	Opengl21   int32 = 2
-	Opengl33   int32 = 3
-	Opengl43   int32 = 4
-	OpenglEs20 int32 = 5
+	OpenglSoftware GlVersion = iota
+	Opengl11
+	Opengl21
+	Opengl33
+	Opengl43
+	OpenglEs20
+	OpenglEs30
 )
 
 // GlVersion type

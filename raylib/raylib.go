@@ -426,7 +426,7 @@ const (
 	GamepadButtonRightThumb            // Gamepad joystick pressed button right
 )
 
-// Gamepad Axis
+// Gamepad axes
 const (
 	GamepadAxisLeftX        = iota // Gamepad left stick X axis
 	GamepadAxisLeftY               // Gamepad left stick Y axis
@@ -623,7 +623,7 @@ type Camera3D struct {
 	Target Vector3
 	// Camera up vector (rotation over its axis)
 	Up Vector3
-	// Camera field-of-view apperture in Y (degrees) in perspective, used as near plane width in orthographic
+	// Camera field-of-view aperture in Y (degrees) in perspective, used as near plane height in world units in orthographic
 	Fovy float32
 	// Camera type, controlling projection type, either CameraPerspective or CameraOrthographic.
 	Projection CameraProjection
@@ -637,15 +637,15 @@ func NewCamera3D(pos, target, up Vector3, fovy float32, ct CameraProjection) Cam
 	return Camera3D{pos, target, up, fovy, ct}
 }
 
-// Camera2D type, defines a 2d camera
+// Camera2D type, defines position/orientation in 2d space
 type Camera2D struct {
-	// Camera offset (displacement from target)
+	// Camera offset (screen space offset from window origin)
 	Offset Vector2
-	// Camera target (rotation and zoom origin)
+	// Camera target (world space target point that is mapped to screen space offset)
 	Target Vector2
-	// Camera rotation in degrees
+	// Camera rotation in degrees (pivots around target)
 	Rotation float32
-	// Camera zoom (scaling), should be 1.0f by default
+	// Camera zoom (scaling around target), must not be set to 0, set to 1.0f for no scale
 	Zoom float32
 }
 
@@ -740,6 +740,10 @@ const (
 	ShaderLocMapIrradiance
 	ShaderLocMapPrefilter
 	ShaderLocMapBrdf
+	ShaderLocVertexBoneids
+	ShaderLocVertexBoneweights
+	ShaderLocVertexBonetransforms
+	ShaderLocVertexInstancetransform
 
 	ShaderLocMapDiffuse  = ShaderLocMapAlbedo
 	ShaderLocMapSpecular = ShaderLocMapMetalness
@@ -825,18 +829,16 @@ type Mesh struct {
 	Colors *uint8
 	// Vertex indices (in case vertex data comes indexed)
 	Indices *uint16
+	// Number of bones (MAX: 256 bones)
+	BoneCount int32
+	// Vertex bone indices, up to 4 bones influence by vertex (skinning) (shader-location = 6)
+	BoneIndices *uint8
+	// Vertex bone weight, up to 4 bones influence by vertex (skinning) (shader-location = 7)
+	BoneWeights *float32
 	// AnimVertices
 	AnimVertices *float32
 	// AnimNormals
 	AnimNormals *float32
-	// BoneIds
-	BoneIds *int32
-	// BoneWeights
-	BoneWeights *float32
-	// Bones animated transformation matrices
-	BoneMatrices *Matrix
-	// Number of bones
-	BoneCount int32
 	// OpenGL Vertex Array Object id
 	VaoID uint32
 	// OpenGL Vertex Buffer Objects id (7 types of vertex data)
@@ -886,16 +888,16 @@ type Model struct {
 	Materials *Material
 	// Mesh material number
 	MeshMaterial *int32
-	// Number of bones
-	BoneCount int32
-	// Bones information (skeleton) (c array)
+	// Skeleton for animation
+	Skeleton ModelSkeleton
+	// Current animation pose ([]Transform)
 	//
-	// Use Model.GetBones instead (go slice)
-	Bones *BoneInfo
-	// Bones base transformation (pose) (c array)
+	// Use Model.GetCurrentPose instead (go slice)
+	CurrentPose ModelAnimPose
+	// Bones animated transformation matrices
 	//
-	// Use Model.GetBindPose instead (go slice)
-	BindPose *Transform
+	// Use Model.GetBoneMatrices instead (go slice)
+	BoneMatrices *Matrix
 }
 
 // GetMeshes returns the meshes of a model as go slice
@@ -908,14 +910,14 @@ func (m Model) GetMaterials() []Material {
 	return unsafe.Slice(m.Materials, m.MaterialCount)
 }
 
-// GetBones returns the bones information (skeleton) of a model as go slice
-func (m Model) GetBones() []BoneInfo {
-	return unsafe.Slice(m.Bones, m.BoneCount)
+// GetCurrentPose returns the current animation pose of a model as go slice
+func (m Model) GetCurrentPose() []Transform {
+	return unsafe.Slice(m.CurrentPose, m.Skeleton.BoneCount)
 }
 
-// GetBindPose returns the bones base transformation of a model as go slice
-func (m Model) GetBindPose() []Transform {
-	return unsafe.Slice(m.BindPose, m.BoneCount)
+// GetBoneMatrices returns the bones animated transformation matrices of a model as go slice
+func (m Model) GetBoneMatrices() []Matrix {
+	return unsafe.Slice(m.BoneMatrices, m.Skeleton.BoneCount)
 }
 
 // BoneInfo type
@@ -931,6 +933,33 @@ type Transform struct {
 	Scale       Vector3
 }
 
+// ModelAnimPose is an array of []Transform
+type ModelAnimPose = *Transform
+
+// ModelSkeleton, animation bones hierarchy
+type ModelSkeleton struct {
+	// Number of bones
+	BoneCount int32
+	// Bones information (skeleton) (c array)
+	//
+	// Use ModelSkeleton.GetBones instead (go slice)
+	Bones *BoneInfo
+	// Bones base transformation ([]Transform) (c array)
+	//
+	// Use ModelSkeleton.GetBindPose instead (go slice)
+	BindPose ModelAnimPose
+}
+
+// GetBones returns the bones information (skeleton) of a model as go slice
+func (m ModelSkeleton) GetBones() []BoneInfo {
+	return unsafe.Slice(m.Bones, m.BoneCount)
+}
+
+// GetBindPose returns the bones base transformation of a model as go slice
+func (m ModelSkeleton) GetBindPose() []Transform {
+	return unsafe.Slice(m.BindPose, m.BoneCount)
+}
+
 // Ray type (useful for raycast)
 type Ray struct {
 	// Ray position (origin)
@@ -944,23 +973,23 @@ func NewRay(position, direction Vector3) Ray {
 	return Ray{position, direction}
 }
 
-// ModelAnimation type
+// ModelAnimation, contains a full animation sequence
 type ModelAnimation struct {
-	BoneCount  int32
-	FrameCount int32
-	Bones      *BoneInfo
-	FramePoses **Transform
-	Name       [32]uint8
-}
-
-// GetBones returns the bones information (skeleton) of a ModelAnimation as go slice
-func (m ModelAnimation) GetBones() []BoneInfo {
-	return unsafe.Slice(m.Bones, m.BoneCount)
+	// Animation name
+	Name [32]uint8
+	// Number of bones (per pose)
+	BoneCount int32
+	// Number of animation key frames
+	KeyframeCount int32
+	// Animation sequence keyframe poses [keyframe][pose]
+	//
+	// Use ModelAnimation.GetFramePose instead (go slice)
+	KeyframePoses *ModelAnimPose
 }
 
 // GetFramePose returns the Transform for a specific bone at a specific frame
 func (m ModelAnimation) GetFramePose(frame, bone int) Transform {
-	framePoses := unsafe.Slice(m.FramePoses, m.FrameCount)
+	framePoses := unsafe.Slice(m.KeyframePoses, m.KeyframeCount)
 	return unsafe.Slice(framePoses[frame], m.BoneCount)[bone]
 }
 
@@ -1125,7 +1154,7 @@ type TextureFilterMode int32
 // NOTE 1: Filtering considers mipmaps if available in the texture
 // NOTE 2: Filter is accordingly set for minification and magnification
 const (
-	// No filter, just pixel aproximation
+	// No filter, pixel approximation
 	FilterPoint TextureFilterMode = iota
 	// Linear filtering
 	FilterBilinear

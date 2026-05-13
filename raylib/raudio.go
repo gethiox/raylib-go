@@ -63,7 +63,8 @@ func internalAudioStreamCallbackGo(data unsafe.Pointer, frames C.int) {
 	}
 }
 
-func AttachAudioMixedProcessor(callback AudioCallback) {
+// AttachAudioMixedProcessor - Attach audio stream processor to the entire audio pipeline, receives frames x 2 samples as 'float' (stereo)
+func AttachAudioMixedProcessor(processor AudioCallback) {
 	audioMixedProcessorsMutex.Lock()
 	defer audioMixedProcessorsMutex.Unlock()
 
@@ -71,14 +72,15 @@ func AttachAudioMixedProcessor(callback AudioCallback) {
 		C.setAudioMixedProcessorCallbackWrapper()
 	}
 
-	audioMixedProcessors = append(audioMixedProcessors, callback)
+	audioMixedProcessors = append(audioMixedProcessors, processor)
 }
 
-func DetachAudioMixedProcessor(callback AudioCallback) {
+// DetachAudioMixedProcessor - Detach audio stream processor from the entire audio pipeline
+func DetachAudioMixedProcessor(processor AudioCallback) {
 	audioMixedProcessorsMutex.Lock()
 	defer audioMixedProcessorsMutex.Unlock()
 
-	callbackPtr := reflect.ValueOf(callback).Pointer()
+	callbackPtr := reflect.ValueOf(processor).Pointer()
 	for i := len(audioMixedProcessors) - 1; i >= 0; i-- {
 		if reflect.ValueOf(audioMixedProcessors[i]).Pointer() == callbackPtr {
 			audioMixedProcessors = append(audioMixedProcessors[:i], audioMixedProcessors[i+1:]...)
@@ -155,14 +157,14 @@ func SetMasterVolume(volume float32) {
 	C.SetMasterVolume(cvolume)
 }
 
-// GetMasterVolume - Set master volume (listener)
+// GetMasterVolume - Get master volume (listener)
 func GetMasterVolume() float32 {
 	ret := C.GetMasterVolume()
 	v := float32(ret)
 	return v
 }
 
-// LoadWave - Load wave data from file into RAM
+// LoadWave - Load wave data from file
 func LoadWave(fileName string) Wave {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -171,7 +173,7 @@ func LoadWave(fileName string) Wave {
 	return v
 }
 
-// LoadWaveFromMemory - Load wave from memory buffer, fileType refers to extension: i.e. ".wav"
+// LoadWaveFromMemory - Load wave from memory buffer, fileType refers to extension: i.e. '.wav'
 func LoadWaveFromMemory(fileType string, fileData []byte, dataSize int32) Wave {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -190,7 +192,7 @@ func IsWaveValid(wave Wave) bool {
 	return v
 }
 
-// LoadSound - Load sound to memory
+// LoadSound - Load sound from file
 func LoadSound(fileName string) Sound {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -199,7 +201,7 @@ func LoadSound(fileName string) Sound {
 	return v
 }
 
-// LoadSoundFromWave - Load sound to memory from wave data
+// LoadSoundFromWave - Load sound from wave data
 func LoadSoundFromWave(wave Wave) Sound {
 	cwave := wave.cptr()
 	ret := C.LoadSoundFromWave(*cwave)
@@ -223,12 +225,12 @@ func IsSoundValid(sound Sound) bool {
 	return v
 }
 
-// UpdateSound - Update sound buffer with new data
-func UpdateSound(sound Sound, data []byte, samplesCount int32) {
+// UpdateSound - Update sound buffer with new data (default data format: 32 bit float, stereo)
+func UpdateSound(sound Sound, data []byte, sampleCount int32) {
 	csound := sound.cptr()
 	cdata := unsafe.Pointer(&data[0])
-	csamplesCount := (C.int)(samplesCount)
-	C.UpdateSound(*csound, cdata, csamplesCount)
+	csampleCount := (C.int)(sampleCount)
+	C.UpdateSound(*csound, cdata, csampleCount)
 }
 
 // UnloadWave - Unload wave data
@@ -244,17 +246,19 @@ func UnloadSound(sound Sound) {
 }
 
 // UnloadSoundAlias - Unload a sound alias (does not deallocate sample data)
-func UnloadSoundAlias(sound Sound) {
-	csound := sound.cptr()
+func UnloadSoundAlias(alias Sound) {
+	csound := alias.cptr()
 	C.UnloadSoundAlias(*csound)
 }
 
-// ExportWave - Export wave data to file
-func ExportWave(wave Wave, fileName string) {
+// ExportWave - Export wave data to file, returns true on success
+func ExportWave(wave Wave, fileName string) bool {
 	cwave := wave.cptr()
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
-	C.ExportWave(*cwave, cfileName)
+	ret := C.ExportWave(*cwave, cfileName)
+	v := bool(ret)
+	return v
 }
 
 // PlaySound - Play a sound
@@ -303,7 +307,7 @@ func SetSoundPitch(sound Sound, pitch float32) {
 	C.SetSoundPitch(*csound, cpitch)
 }
 
-// SetSoundPan - Set pan for a sound (0.5 is center)
+// SetSoundPan - Set pan for a sound (-1.0 left, 0.0 center, 1.0 right)
 func SetSoundPan(sound Sound, pan float32) {
 	csound := sound.cptr()
 	cpan := (C.float)(pan)
@@ -335,7 +339,7 @@ func WaveCrop(wave *Wave, initFrame int32, finalFrame int32) {
 	C.WaveCrop(cwave, cinitFrame, cfinalFrame)
 }
 
-// LoadWaveSamples - Get samples data from wave as a floats array
+// LoadWaveSamples - Load samples data from wave as a 32bit float data array
 func LoadWaveSamples(wave Wave) []float32 {
 	cwave := wave.cptr()
 	ret := C.LoadWaveSamples(*cwave)
@@ -358,12 +362,12 @@ func LoadMusicStream(fileName string) Music {
 }
 
 // LoadMusicStreamFromMemory - Load music stream from data
-func LoadMusicStreamFromMemory(fileType string, fileData []byte, dataSize int32) Music {
+func LoadMusicStreamFromMemory(fileType string, data []byte, dataSize int32) Music {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
-	cfileData := (*C.uchar)(unsafe.Pointer(&fileData[0]))
+	cdata := (*C.uchar)(unsafe.Pointer(&data[0]))
 	cdataSize := (C.int)(dataSize)
-	ret := C.LoadMusicStreamFromMemory(cfileType, cfileData, cdataSize)
+	ret := C.LoadMusicStreamFromMemory(cfileType, cdata, cdataSize)
 	v := newMusicFromPointer(unsafe.Pointer(&ret))
 	return v
 }
@@ -441,7 +445,7 @@ func SetMusicPitch(music Music, pitch float32) {
 	C.SetMusicPitch(cmusic, cpitch)
 }
 
-// SetMusicPan - Set pan for a music (0.5 is center)
+// SetMusicPan - Set pan for a music (-1.0 left, 0.0 center, 1.0 right)
 func SetMusicPan(music Music, pan float32) {
 	cmusic := *(*C.Music)(unsafe.Pointer(&music))
 	cpan := (C.float)(pan)
@@ -488,11 +492,11 @@ func UnloadAudioStream(stream AudioStream) {
 	C.UnloadAudioStream(*cstream)
 }
 
-// UpdateAudioStream - Update audio stream buffers with data ([]float32 or []int16)
-func UpdateAudioStream(stream AudioStream, data any) {
+// UpdateAudioStream - Update audio stream buffers with data
+func UpdateAudioStream[T float32 | int16](stream AudioStream, data []T) {
 	var cdata unsafe.Pointer
 	var csamplesCount C.int
-	switch d := data.(type) {
+	switch d := any(data).(type) {
 	case []float32:
 		cdata = unsafe.Pointer(&d[0])
 		csamplesCount = (C.int)(len(d))
@@ -558,7 +562,7 @@ func SetAudioStreamPitch(stream AudioStream, pitch float32) {
 	C.SetAudioStreamPitch(*cstream, cpitch)
 }
 
-// SetAudioStreamPan - Set pan for audio stream (0.5 is centered)
+// SetAudioStreamPan - Set pan for audio stream (-1.0 to 1.0 range, 0.0 is centered)
 func SetAudioStreamPan(stream AudioStream, pan float32) {
 	cstream := stream.cptr()
 	cpan := (C.float)(pan)

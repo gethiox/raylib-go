@@ -37,7 +37,7 @@ func GetFontDefault() Font {
 	return v
 }
 
-// LoadFont - Load a Font image into GPU memory (VRAM)
+// LoadFont - Load font from file into GPU memory (VRAM)
 func LoadFont(fileName string) Font {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -46,7 +46,9 @@ func LoadFont(fileName string) Font {
 	return v
 }
 
-// LoadFontEx - Load Font from file with extended parameters
+// LoadFontEx - Load Font from file with extended parameters.
+// Use nil for fontChars and 0 for runesNumber to load the default character set.
+// Font size is provided in pixels height.
 func LoadFontEx(fileName string, fontSize int32, fontChars []rune, runesNumber ...int32) Font {
 	var cfontChars *C.int
 	var ccharsCount C.int
@@ -68,8 +70,8 @@ func LoadFontEx(fileName string, fontSize int32, fontChars []rune, runesNumber .
 	return v
 }
 
-// LoadFontFromImage - Loads an Image font file (XNA style)
-func LoadFontFromImage(image Image, key color.RGBA, firstChar int32) Font {
+// LoadFontFromImage - Load font from Image (XNA style)
+func LoadFontFromImage(image Image, key color.RGBA, firstChar rune) Font {
 	cimage := image.cptr()
 	ckey := colorCptr(key)
 	cfirstChar := (C.int)(firstChar)
@@ -78,7 +80,7 @@ func LoadFontFromImage(image Image, key color.RGBA, firstChar int32) Font {
 	return v
 }
 
-// LoadFontFromMemory - Load font from memory buffer, fileType refers to extension: i.e. ".ttf"
+// LoadFontFromMemory - Load font from memory buffer, fileType refers to extension: i.e. '.ttf'
 func LoadFontFromMemory(fileType string, fileData []byte, fontSize int32, codepoints []rune) Font {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -101,7 +103,7 @@ func IsFontValid(font Font) bool {
 }
 
 // LoadFontData - Load font data for further use
-func LoadFontData(fileData []byte, fontSize int32, codePoints []rune, codepointCount, typ int32) []GlyphInfo {
+func LoadFontData(fileData []byte, fontSize int32, codepoints []rune, codepointCount, typ int32) []GlyphInfo {
 	if len(fileData) == 0 {
 		return nil
 	}
@@ -109,7 +111,7 @@ func LoadFontData(fileData []byte, fontSize int32, codePoints []rune, codepointC
 	cdataSize := (C.int)(len(fileData))
 	cfontSize := (C.int)(fontSize)
 	// Note: unsafe.SliceData returns nil for a nil slice, which is acceptable for C API expecting NULL
-	ccodePoints := (*C.int)(unsafe.SliceData(codePoints))
+	ccodepoints := (*C.int)(unsafe.SliceData(codepoints))
 	// In case no chars count provided, default to 95 (kept for compatibility; C side also defaults if 0)
 	if codepointCount < 0 {
 		codepointCount = 0
@@ -117,7 +119,7 @@ func LoadFontData(fileData []byte, fontSize int32, codePoints []rune, codepointC
 	ccodePointCount := (C.int)(codepointCount)
 	ctype := (C.int)(typ)
 	var cglyphCount C.int
-	ret := C.LoadFontData(cfileData, cdataSize, cfontSize, ccodePoints, ccodePointCount, ctype, &cglyphCount)
+	ret := C.LoadFontData(cfileData, cdataSize, cfontSize, ccodepoints, ccodePointCount, ctype, &cglyphCount)
 	// Build Go slice with the actual glyph count returned by C
 	count := int(cglyphCount)
 	if count <= 0 || ret == nil {
@@ -133,13 +135,13 @@ func UnloadFontData(glyphs []GlyphInfo) {
 	C.UnloadFontData(cglyphs, C.int(len(glyphs)))
 }
 
-// UnloadFont - Unload Font from GPU memory (VRAM)
+// UnloadFont - Unload font from GPU memory (VRAM)
 func UnloadFont(font Font) {
 	cfont := font.cptr()
 	C.UnloadFont(*cfont)
 }
 
-// DrawFPS - Shows current FPS
+// DrawFPS - Draw current FPS
 func DrawFPS(posX int32, posY int32) {
 	cposX := (C.int)(posX)
 	cposY := (C.int)(posY)
@@ -157,7 +159,7 @@ func DrawText(text string, posX int32, posY int32, fontSize int32, col color.RGB
 	C.DrawText(ctext, cposX, cposY, cfontSize, *ccolor)
 }
 
-// DrawTextEx - Draw text using Font and additional parameters
+// DrawTextEx - Draw text using font and additional parameters
 func DrawTextEx(font Font, text string, position Vector2, fontSize float32, spacing float32, tint color.RGBA) {
 	cfont := font.cptr()
 	ctext := C.CString(text)
@@ -170,7 +172,7 @@ func DrawTextEx(font Font, text string, position Vector2, fontSize float32, spac
 }
 
 // DrawTextPro - Draw text using Font and pro parameters (rotation)
-func DrawTextPro(font Font, text string, position Vector2, origin Vector2, rotation, fontSize float32, spacing float32, tint color.RGBA) {
+func DrawTextPro(font Font, text string, position, origin Vector2, rotation, fontSize, spacing float32, tint color.RGBA) {
 	cfont := font.cptr()
 	ctext := C.CString(text)
 	defer C.free(unsafe.Pointer(ctext))
@@ -211,8 +213,24 @@ func MeasureTextEx(font Font, text string, fontSize float32, spacing float32) Ve
 	return v
 }
 
+// MeasureTextCodepoints - Measure string size for an existing array of codepoints for Font
+func MeasureTextCodepoints(font Font, codepoints []rune, fontSize float32, spacing float32) Vector2 {
+	cfont := font.cptr()
+	var ccodepoints *C.int
+	var clength C.int
+	if len(codepoints) > 0 {
+		ccodepoints = (*C.int)(unsafe.Pointer(&codepoints[0]))
+		clength = C.int(len(codepoints))
+	}
+	cfontSize := (C.float)(fontSize)
+	cspacing := (C.float)(spacing)
+	ret := C.MeasureTextCodepoints(*cfont, ccodepoints, clength, cfontSize, cspacing)
+	v := newVector2FromPointer(unsafe.Pointer(&ret))
+	return v
+}
+
 // GetGlyphIndex - Get glyph index position in font for a codepoint (unicode character), fallback to '?' if not found
-func GetGlyphIndex(font Font, codepoint int32) int32 {
+func GetGlyphIndex(font Font, codepoint rune) int32 {
 	cfont := font.cptr()
 	ccodepoint := (C.int)(codepoint)
 	ret := C.GetGlyphIndex(*cfont, ccodepoint)
@@ -221,7 +239,7 @@ func GetGlyphIndex(font Font, codepoint int32) int32 {
 }
 
 // GetGlyphInfo - Get glyph font info data for a codepoint (unicode character), fallback to '?' if not found
-func GetGlyphInfo(font Font, codepoint int32) GlyphInfo {
+func GetGlyphInfo(font Font, codepoint rune) GlyphInfo {
 	cfont := font.cptr()
 	ccodepoint := (C.int)(codepoint)
 	ret := C.GetGlyphInfo(*cfont, ccodepoint)
@@ -230,7 +248,7 @@ func GetGlyphInfo(font Font, codepoint int32) GlyphInfo {
 }
 
 // GetGlyphAtlasRec - Get glyph rectangle in font atlas for a codepoint (unicode character), fallback to '?' if not found
-func GetGlyphAtlasRec(font Font, codepoint int32) Rectangle {
+func GetGlyphAtlasRec(font Font, codepoint rune) Rectangle {
 	cfont := font.cptr()
 	ccodepoint := (C.int)(codepoint)
 	ret := C.GetGlyphAtlasRec(*cfont, ccodepoint)

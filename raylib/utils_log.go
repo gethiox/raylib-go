@@ -9,7 +9,7 @@ import "unsafe"
 
 var internalTraceLogCallbackFun TraceLogCallbackFun = func(int, string) {}
 
-// SetTraceLogCallback - set a call-back function for trace log
+// SetTraceLogCallback - Set custom trace log
 func SetTraceLogCallback(fn TraceLogCallbackFun) {
 	internalTraceLogCallbackFun = fn
 	C.setLogCallbackWrapper()

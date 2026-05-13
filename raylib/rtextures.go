@@ -81,7 +81,7 @@ func NewImageFromImage(img image.Image) *Image {
 	return v
 }
 
-// LoadImage - Load an image into CPU memory (RAM)
+// LoadImage - Load image from file into CPU memory (RAM)
 func LoadImage(fileName string) *Image {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -90,7 +90,7 @@ func LoadImage(fileName string) *Image {
 	return v
 }
 
-// LoadImageRaw - Load image data from RAW file
+// LoadImageRaw - Load image from RAW file data
 func LoadImageRaw(fileName string, width, height int32, format PixelFormat, headerSize int32) *Image {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -125,7 +125,7 @@ func LoadImageAnimFromMemory(fileType string, fileData []byte, dataSize int32, f
 	return v
 }
 
-// LoadImageFromMemory - Load image from memory buffer, fileType refers to extension: i.e. ".png"
+// LoadImageFromMemory - Load image from memory buffer, fileType refers to extension: i.e. '.png'
 func LoadImageFromMemory(fileType string, fileData []byte, dataSize int32) *Image {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -136,7 +136,7 @@ func LoadImageFromMemory(fileType string, fileData []byte, dataSize int32) *Imag
 	return v
 }
 
-// LoadImageFromTexture - Get pixel data from GPU texture and return an Image
+// LoadImageFromTexture - Load image from GPU texture data
 func LoadImageFromTexture(texture Texture2D) *Image {
 	ctexture := texture.cptr()
 	ret := C.LoadImageFromTexture(*ctexture)
@@ -144,7 +144,7 @@ func LoadImageFromTexture(texture Texture2D) *Image {
 	return v
 }
 
-// LoadImageFromScreen - Load image from screen buffer (screenshot)
+// LoadImageFromScreen - Load image from screen buffer and (screenshot)
 func LoadImageFromScreen() *Image {
 	ret := C.LoadImageFromScreen()
 	v := newImageFromPointer(unsafe.Pointer(&ret))
@@ -159,7 +159,7 @@ func IsImageValid(image *Image) bool {
 	return v
 }
 
-// LoadTexture - Load an image as texture into GPU memory
+// LoadTexture - Load texture from file into GPU memory (VRAM)
 func LoadTexture(fileName string) Texture2D {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -168,7 +168,7 @@ func LoadTexture(fileName string) Texture2D {
 	return v
 }
 
-// LoadTextureFromImage - Load a texture from image data
+// LoadTextureFromImage - Load texture from image data
 func LoadTextureFromImage(image *Image) Texture2D {
 	cimage := image.cptr()
 	ret := C.LoadTextureFromImage(*cimage)
@@ -176,7 +176,7 @@ func LoadTextureFromImage(image *Image) Texture2D {
 	return v
 }
 
-// LoadRenderTexture - Load a texture to be used for rendering
+// LoadRenderTexture - Load texture for rendering (framebuffer)
 func LoadRenderTexture(width, height int32) RenderTexture2D {
 	cwidth := (C.int)(width)
 	cheight := (C.int)(height)
@@ -185,7 +185,7 @@ func LoadRenderTexture(width, height int32) RenderTexture2D {
 	return v
 }
 
-// LoadTextureCubemap - Loads a texture for a cubemap using given layout
+// LoadTextureCubemap - Load cubemap from image, multiple image cubemap layouts supported
 func LoadTextureCubemap(image *Image, layout int32) Texture2D {
 	cimage := image.cptr()
 	clayout := (C.int)(layout)
@@ -208,7 +208,7 @@ func IsTextureValid(texture Texture2D) bool {
 	return v
 }
 
-// UnloadTexture - Unload texture from GPU memory
+// UnloadTexture - Unload texture from GPU memory (VRAM)
 func UnloadTexture(texture Texture2D) {
 	ctexture := texture.cptr()
 	C.UnloadTexture(*ctexture)
@@ -222,28 +222,45 @@ func IsRenderTextureValid(target RenderTexture2D) bool {
 	return v
 }
 
-// UnloadRenderTexture - Unload render texture from GPU memory
+// UnloadRenderTexture - Unload render texture from GPU memory (VRAM)
 func UnloadRenderTexture(target RenderTexture2D) {
 	ctarget := target.cptr()
 	C.UnloadRenderTexture(*ctarget)
 }
 
-// LoadImageColors - Get pixel data from image as a Color slice
+// LoadImageColors - Load color data from image as a Color array (RGBA - 32bit)
+//
+// NOTE: Memory allocated should be freed using UnloadImageColors()
 func LoadImageColors(img *Image) []color.RGBA {
 	cimg := img.cptr()
 	ret := C.LoadImageColors(*cimg)
 	return (*[1 << 24]color.RGBA)(unsafe.Pointer(ret))[0 : img.Width*img.Height]
 }
 
-// UnloadImageColors - Unload color data loaded with LoadImageColors()
-func UnloadImageColors(cols []color.RGBA) {
-	C.UnloadImageColors((*C.Color)(unsafe.Pointer(&cols[0])))
+// LoadImagePalette - Load colors palette from image as a Color array (RGBA - 32bit)
+//
+// NOTE: Memory allocated should be freed using UnloadImagePalette()
+func LoadImagePalette(img Image, maxPaletteSize int32) []color.RGBA {
+	var colorCount C.int
+	cimg := img.cptr()
+	ret := C.LoadImagePalette(*cimg, C.int(maxPaletteSize), &colorCount)
+	return unsafe.Slice((*color.RGBA)(unsafe.Pointer(ret)), colorCount)
 }
 
-// UpdateTexture - Update GPU texture with new data ([]color.RGBA, *image.RGBA or []byte)
-func UpdateTexture(texture Texture2D, pixels any) {
+// UnloadImageColors - Unload color data loaded with LoadImageColors()
+func UnloadImageColors(colors []color.RGBA) {
+	C.UnloadImageColors((*C.Color)(unsafe.Pointer(&colors[0])))
+}
+
+// UnloadImagePalette - Unload colors palette loaded with LoadImagePalette()
+func UnloadImagePalette(colors []color.RGBA) {
+	C.UnloadImagePalette((*C.Color)(unsafe.Pointer(&colors[0])))
+}
+
+// UpdateTexture - Update GPU texture with new data (pixels should be able to fill texture)
+func UpdateTexture[T []color.RGBA | *image.RGBA | []byte](texture Texture2D, pixels T) {
 	var cpixels unsafe.Pointer
-	switch p := pixels.(type) {
+	switch p := any(pixels).(type) {
 	case []color.RGBA:
 		cpixels = unsafe.Pointer(&p[0])
 	case *image.RGBA:
@@ -255,10 +272,10 @@ func UpdateTexture(texture Texture2D, pixels any) {
 	C.UpdateTexture(*ctexture, cpixels)
 }
 
-// UpdateTextureRec - Update GPU texture rectangle with new data ([]color.RGBA, *image.RGBA or []byte)
-func UpdateTextureRec(texture Texture2D, rec Rectangle, pixels any) {
+// UpdateTextureRec - Update GPU texture rectangle with new data (pixels and rec should fit in texture)
+func UpdateTextureRec[T []color.RGBA | *image.RGBA | []byte](texture Texture2D, rec Rectangle, pixels T) {
 	var cpixels unsafe.Pointer
-	switch p := pixels.(type) {
+	switch p := any(pixels).(type) {
 	case []color.RGBA:
 		cpixels = unsafe.Pointer(&p[0])
 	case *image.RGBA:
@@ -271,7 +288,7 @@ func UpdateTextureRec(texture Texture2D, rec Rectangle, pixels any) {
 	C.UpdateTextureRec(*ctexture, *crec, cpixels)
 }
 
-// ExportImage - Export image as a PNG file
+// ExportImage - Export image data to file, returns true on success
 func ExportImage(image Image, fileName string) bool {
 	cfileName := C.CString(fileName)
 	defer C.free(unsafe.Pointer(cfileName))
@@ -280,6 +297,8 @@ func ExportImage(image Image, fileName string) bool {
 }
 
 // ExportImageToMemory - Export image to memory buffer
+//
+// The returned memory is a Go-managed slice. It doesn't need to be freed.
 func ExportImageToMemory(image Image, fileType string) []byte {
 	cfileType := C.CString(fileType)
 	defer C.free(unsafe.Pointer(cfileType))
@@ -287,8 +306,14 @@ func ExportImageToMemory(image Image, fileType string) []byte {
 
 	var size C.int
 	ret := C.ExportImageToMemory(*cimage, cfileType, &size)
-	v := unsafe.Slice((*byte)(unsafe.Pointer(ret)), size)
-	return v
+	defer C.free(unsafe.Pointer(ret)) // free the memory
+
+	if ret == nil {
+		return nil
+	}
+	result := make([]byte, size)
+	copy(result, unsafe.Slice((*byte)(unsafe.Pointer(ret)), size))
+	return result
 }
 
 // ImageCopy - Create an image duplicate (useful for transformations)
@@ -299,7 +324,7 @@ func ImageCopy(image *Image) *Image {
 	return v
 }
 
-// Create an image from another image piece
+// ImageFromImage - Create an image from another image piece
 func ImageFromImage(image Image, rec Rectangle) Image {
 	cimage := image.cptr()
 	crec := rec.cptr()
@@ -349,10 +374,10 @@ func ImageFormat(image *Image, newFormat PixelFormat) {
 }
 
 // ImageToPOT - Convert image to POT (power-of-two)
-func ImageToPOT(image *Image, fillColor color.RGBA) {
+func ImageToPOT(image *Image, fill color.RGBA) {
 	cimage := image.cptr()
-	cfillColor := colorCptr(fillColor)
-	C.ImageToPOT(cimage, *cfillColor)
+	cfill := colorCptr(fill)
+	C.ImageToPOT(cimage, *cfill)
 }
 
 // ImageCrop - Crop an image to a defined rectangle
@@ -369,7 +394,7 @@ func ImageAlphaCrop(image *Image, threshold float32) {
 	C.ImageAlphaCrop(cimage, cthreshold)
 }
 
-// ImageAlphaClear - Apply alpha mask to image
+// ImageAlphaClear - Clear alpha channel to desired color
 func ImageAlphaClear(image *Image, col color.RGBA, threshold float32) {
 	cimage := image.cptr()
 	ccolor := colorCptr(col)
@@ -390,7 +415,7 @@ func ImageAlphaPremultiply(image *Image) {
 	C.ImageAlphaPremultiply(cimage)
 }
 
-// ImageBlurGaussian - Apply box blur
+// ImageBlurGaussian - Apply Gaussian blur using a box blur approximation
 func ImageBlurGaussian(image *Image, blurSize int32) {
 	cimage := image.cptr()
 	cblurSize := C.int(blurSize)
@@ -404,7 +429,7 @@ func ImageKernelConvolution(image *Image, kernel []float32) {
 	C.ImageKernelConvolution(cimage, ckernel, C.int(len(kernel)))
 }
 
-// ImageResize - Resize an image (bilinear filtering)
+// ImageResize - Resize image (Bicubic scaling algorithm)
 func ImageResize(image *Image, newWidth, newHeight int32) {
 	cimage := image.cptr()
 	cnewWidth := (C.int)(newWidth)
@@ -412,7 +437,7 @@ func ImageResize(image *Image, newWidth, newHeight int32) {
 	C.ImageResize(cimage, cnewWidth, cnewHeight)
 }
 
-// ImageResizeNN - Resize an image (Nearest-Neighbor scaling algorithm)
+// ImageResizeNN - Resize image (Nearest-Neighbor scaling algorithm)
 func ImageResizeNN(image *Image, newWidth, newHeight int32) {
 	cimage := image.cptr()
 	cnewWidth := (C.int)(newWidth)
@@ -421,17 +446,17 @@ func ImageResizeNN(image *Image, newWidth, newHeight int32) {
 }
 
 // ImageResizeCanvas - Resize canvas and fill with color
-func ImageResizeCanvas(image *Image, newWidth, newHeight, offsetX, offsetY int32, col color.RGBA) {
+func ImageResizeCanvas(image *Image, newWidth, newHeight, offsetX, offsetY int32, fill color.RGBA) {
 	cimage := image.cptr()
 	cnewWidth := (C.int)(newWidth)
 	cnewHeight := (C.int)(newHeight)
 	coffsetX := (C.int)(offsetX)
 	coffsetY := (C.int)(offsetY)
-	ccolor := colorCptr(col)
+	ccolor := colorCptr(fill)
 	C.ImageResizeCanvas(cimage, cnewWidth, cnewHeight, coffsetX, coffsetY, *ccolor)
 }
 
-// ImageMipmaps - Generate all mipmap levels for a provided image
+// ImageMipmaps - Compute all mipmap levels for a provided image
 func ImageMipmaps(image *Image) {
 	cimage := image.cptr()
 	C.ImageMipmaps(cimage)
@@ -519,6 +544,15 @@ func ImageColorReplace(image *Image, col, replace color.RGBA) {
 	C.ImageColorReplace(cimage, *ccolor, *creplace)
 }
 
+// GetImageAlphaBorder - Get image alpha border rectangle
+func GetImageAlphaBorder(image Image, threshold float32) Rectangle {
+	cimage := image.cptr()
+	cthreshold := C.float(threshold)
+	ret := C.GetImageAlphaBorder(*cimage, cthreshold)
+	v := newRectangleFromPointer(unsafe.Pointer(&ret))
+	return v
+}
+
 // GetImageColor - Get image pixel color at (x, y) position
 func GetImageColor(image Image, x, y int32) color.RGBA {
 	cimage := image.cptr()
@@ -537,7 +571,7 @@ func ImageClearBackground(dst *Image, col color.RGBA) {
 	C.ImageClearBackground(cdst, *ccolor)
 }
 
-// ImageDraw - Draw a source image within a destination image
+// ImageDraw - Draw a source image within a destination image (tint applied to source)
 func ImageDraw(dst, src *Image, srcRec, dstRec Rectangle, tint color.RGBA) {
 	cdst := dst.cptr()
 	csrc := src.cptr()
@@ -558,7 +592,7 @@ func ImageDrawLine(dst *Image, startPosX, startPosY, endPosX, endPosY int32, col
 	C.ImageDrawLine(cdst, cstartPosX, cstartPosY, cendPosX, cendPosY, *ccolor)
 }
 
-// ImageDrawLineV - Draw line within an image, vector version
+// ImageDrawLineV - Draw line within an image (Vector version)
 func ImageDrawLineV(dst *Image, start, end Vector2, col color.RGBA) {
 	cdst := dst.cptr()
 	cstart := start.cptr()
@@ -633,14 +667,14 @@ func ImageDrawPixelV(dst *Image, position Vector2, col color.RGBA) {
 }
 
 // ImageDrawRectangle - Draw rectangle within an image
-func ImageDrawRectangle(dst *Image, x, y, width, height int32, col color.RGBA) {
+func ImageDrawRectangle(dst *Image, posX, posY, width, height int32, col color.RGBA) {
 	cdst := dst.cptr()
-	cx := (C.int)(x)
-	cy := (C.int)(y)
+	cposX := (C.int)(posX)
+	cposY := (C.int)(posY)
 	cwidth := (C.int)(width)
 	cheight := (C.int)(height)
 	ccolor := colorCptr(col)
-	C.ImageDrawRectangle(cdst, cx, cy, cwidth, cheight, *ccolor)
+	C.ImageDrawRectangle(cdst, cposX, cposY, cwidth, cheight, *ccolor)
 }
 
 // ImageDrawRectangleV - Draw rectangle within an image (Vector version)
@@ -719,7 +753,7 @@ func ImageDrawRectangleRec(dst *Image, rec Rectangle, col color.RGBA) {
 	C.ImageDrawRectangleRec(cdst, *crec, *ccolor)
 }
 
-// ImageDrawText - Draw text (default font) within an image (destination)
+// ImageDrawText - Draw text (using default font) within an image (destination)
 func ImageDrawText(dst *Image, posX, posY int32, text string, fontSize int32, col color.RGBA) {
 	cdst := dst.cptr()
 	posx := (C.int)(posX)
@@ -732,7 +766,7 @@ func ImageDrawText(dst *Image, posX, posY int32, text string, fontSize int32, co
 }
 
 // ImageDrawTextEx - Draw text (custom sprite font) within an image (destination)
-func ImageDrawTextEx(dst *Image, position Vector2, font Font, text string, fontSize, spacing float32, col color.RGBA) {
+func ImageDrawTextEx(dst *Image, position Vector2, font Font, text string, fontSize, spacing float32, tint color.RGBA) {
 	cdst := dst.cptr()
 	cposition := position.cptr()
 	cfont := font.cptr()
@@ -740,8 +774,8 @@ func ImageDrawTextEx(dst *Image, position Vector2, font Font, text string, fontS
 	defer C.free(unsafe.Pointer(ctext))
 	cfontSize := (C.float)(fontSize)
 	cspacing := (C.float)(spacing)
-	ccolor := colorCptr(col)
-	C.ImageDrawTextEx(cdst, *cfont, ctext, *cposition, cfontSize, cspacing, *ccolor)
+	ctint := colorCptr(tint)
+	C.ImageDrawTextEx(cdst, *cfont, ctext, *cposition, cfontSize, cspacing, *ctint)
 }
 
 // GenImageColor - Generate image: plain color
@@ -832,7 +866,7 @@ func GenImagePerlinNoise(width, height, offsetX, offsetY int, scale float32) *Im
 	return v
 }
 
-// GenImageCellular - Generate image: cellular algorithm. Bigger tileSize means bigger cells
+// GenImageCellular - Generate image: cellular algorithm, bigger tileSize means bigger cells
 func GenImageCellular(width, height, tileSize int) *Image {
 	cwidth := (C.int)(width)
 	cheight := (C.int)(height)
@@ -862,17 +896,17 @@ func GenTextureMipmaps(texture *Texture2D) {
 }
 
 // SetTextureFilter - Set texture scaling filter mode
-func SetTextureFilter(texture Texture2D, filterMode TextureFilterMode) {
+func SetTextureFilter(texture Texture2D, filter TextureFilterMode) {
 	ctexture := texture.cptr()
-	cfilterMode := (C.int)(filterMode)
-	C.SetTextureFilter(*ctexture, cfilterMode)
+	cfilter := (C.int)(filter)
+	C.SetTextureFilter(*ctexture, cfilter)
 }
 
 // SetTextureWrap - Set texture wrapping mode
-func SetTextureWrap(texture Texture2D, wrapMode TextureWrapMode) {
+func SetTextureWrap(texture Texture2D, wrap TextureWrapMode) {
 	ctexture := texture.cptr()
-	cwrapMode := (C.int)(wrapMode)
-	C.SetTextureWrap(*ctexture, cwrapMode)
+	cwrap := (C.int)(wrap)
+	C.SetTextureWrap(*ctexture, cwrap)
 }
 
 // DrawTexture - Draw a Texture2D
@@ -903,23 +937,23 @@ func DrawTextureEx(texture Texture2D, position Vector2, rotation, scale float32,
 }
 
 // DrawTextureRec - Draw a part of a texture defined by a rectangle
-func DrawTextureRec(texture Texture2D, sourceRec Rectangle, position Vector2, tint color.RGBA) {
+func DrawTextureRec(texture Texture2D, source Rectangle, position Vector2, tint color.RGBA) {
 	ctexture := texture.cptr()
-	csourceRec := sourceRec.cptr()
+	csource := source.cptr()
 	cposition := position.cptr()
 	ctint := colorCptr(tint)
-	C.DrawTextureRec(*ctexture, *csourceRec, *cposition, *ctint)
+	C.DrawTextureRec(*ctexture, *csource, *cposition, *ctint)
 }
 
 // DrawTexturePro - Draw a part of a texture defined by a rectangle with 'pro' parameters
-func DrawTexturePro(texture Texture2D, sourceRec, destRec Rectangle, origin Vector2, rotation float32, tint color.RGBA) {
+func DrawTexturePro(texture Texture2D, source, dest Rectangle, origin Vector2, rotation float32, tint color.RGBA) {
 	ctexture := texture.cptr()
-	csourceRec := sourceRec.cptr()
-	cdestRec := destRec.cptr()
+	csource := source.cptr()
+	cdest := dest.cptr()
 	corigin := origin.cptr()
 	crotation := (C.float)(rotation)
 	ctint := colorCptr(tint)
-	C.DrawTexturePro(*ctexture, *csourceRec, *cdestRec, *corigin, crotation, *ctint)
+	C.DrawTexturePro(*ctexture, *csource, *cdest, *corigin, crotation, *ctint)
 }
 
 // cptr returns C pointer
@@ -927,7 +961,7 @@ func (n *NPatchInfo) cptr() *C.NPatchInfo {
 	return (*C.NPatchInfo)(unsafe.Pointer(n))
 }
 
-// DrawTextureNPatch - Draws a texture (or part of it) that stretches or shrinks nicely using n-patch info
+// DrawTextureNPatch - Draws a texture (or part of it) that stretches or shrinks nicely
 func DrawTextureNPatch(texture Texture2D, nPatchInfo NPatchInfo, dest Rectangle, origin Vector2, rotation float32, tint color.RGBA) {
 	ctexture := texture.cptr()
 	cnPatchInfo := nPatchInfo.cptr()

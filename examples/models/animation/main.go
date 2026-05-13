@@ -59,9 +59,9 @@ func main() {
 		if rl.IsKeyDown(rl.KeySpace) {
 			animFrameCount++
 			animCurrent := anims[0]
-			animFrameNum := animCurrent.FrameCount
+			animFrameNum := animCurrent.KeyframeCount
 
-			rl.UpdateModelAnimation(model, anims[0], int32(animFrameCount))
+			rl.UpdateModelAnimation(model, anims[0], float32(animFrameCount))
 			if animFrameCount >= int(animFrameNum) {
 				animFrameCount = 0
 			}
@@ -73,7 +73,7 @@ func main() {
 
 		rl.DrawModelEx(model, position, rl.NewVector3(1, 0, 0), -90, rl.NewVector3(1, 1, 1), rl.White)
 		// Draw translation cubes
-		for i := int32(0); i < model.BoneCount; i++ {
+		for i := int32(0); i < model.Skeleton.BoneCount; i++ {
 			pose := anims[0].GetFramePose(animFrameCount, int(i))
 			rl.DrawCube(pose.Translation, 0.2, 0.2, 0.2, rl.Red)
 		}

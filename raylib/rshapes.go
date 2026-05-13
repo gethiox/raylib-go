@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-// SetShapesTexture - Define default texture used to draw shapes
+// SetShapesTexture - Set texture and rectangle to be used on shapes drawing
 func SetShapesTexture(texture Texture2D, source Rectangle) {
 	ctexture := texture.cptr()
 	csource := source.cptr()
@@ -56,7 +56,7 @@ func DrawLine(startPosX, startPosY, endPosX, endPosY int32, col color.RGBA) {
 	C.DrawLine(cstartPosX, cstartPosY, cendPosX, cendPosY, *ccolor)
 }
 
-// DrawLineV - Draw a line (Vector version)
+// DrawLineV - Draw a line (using gl lines)
 func DrawLineV(startPos, endPos Vector2, col color.RGBA) {
 	cstartPos := startPos.cptr()
 	cendPos := endPos.cptr()
@@ -64,7 +64,7 @@ func DrawLineV(startPos, endPos Vector2, col color.RGBA) {
 	C.DrawLineV(*cstartPos, *cendPos, *ccolor)
 }
 
-// DrawLineEx - Draw a line defining thickness
+// DrawLineEx - Draw a line (using triangles/quads)
 func DrawLineEx(startPos, endPos Vector2, thick float32, col color.RGBA) {
 	cstartPos := startPos.cptr()
 	cendPos := endPos.cptr()
@@ -73,7 +73,7 @@ func DrawLineEx(startPos, endPos Vector2, thick float32, col color.RGBA) {
 	C.DrawLineEx(*cstartPos, *cendPos, cthick, *ccolor)
 }
 
-// DrawLineStrip - Draw lines sequence
+// DrawLineStrip - Draw lines sequence (using gl lines)
 func DrawLineStrip(points []Vector2, col color.RGBA) {
 	cpoints := (*C.Vector2)(unsafe.Pointer(&points[0]))
 	cpointCount := (C.int)(len(points))
@@ -81,7 +81,7 @@ func DrawLineStrip(points []Vector2, col color.RGBA) {
 	C.DrawLineStrip(cpoints, cpointCount, *ccolor)
 }
 
-// DrawLineBezier - Draw a line using cubic-bezier curves in-out
+// DrawLineBezier - Draw line segment cubic-bezier in-out interpolation
 func DrawLineBezier(startPos, endPos Vector2, thick float32, col color.RGBA) {
 	cstartPos := startPos.cptr()
 	cendPos := endPos.cptr()
@@ -120,7 +120,7 @@ func DrawCircleSector(center Vector2, radius, startAngle, endAngle float32, segm
 	C.DrawCircleSector(*ccenter, cradius, cstartAngle, cendAngle, csegments, *ccolor)
 }
 
-// DrawCircleSectorLines -
+// DrawCircleSectorLines - Draw circle sector outline
 func DrawCircleSectorLines(center Vector2, radius, startAngle, endAngle float32, segments int32, col color.RGBA) {
 	ccenter := center.cptr()
 	cradius := (C.float)(radius)
@@ -132,13 +132,12 @@ func DrawCircleSectorLines(center Vector2, radius, startAngle, endAngle float32,
 }
 
 // DrawCircleGradient - Draw a gradient-filled circle
-func DrawCircleGradient(centerX, centerY int32, radius float32, inner, outer color.RGBA) {
-	ccenterX := (C.int)(centerX)
-	ccenterY := (C.int)(centerY)
+func DrawCircleGradient(center Vector2, radius float32, inner, outer color.RGBA) {
+	ccenter := center.cptr()
 	cradius := (C.float)(radius)
 	cinner := colorCptr(inner)
 	couter := colorCptr(outer)
-	C.DrawCircleGradient(ccenterX, ccenterY, cradius, *cinner, *couter)
+	C.DrawCircleGradient(*ccenter, cradius, *cinner, *couter)
 }
 
 // DrawCircleV - Draw a color-filled circle (Vector version)
@@ -176,6 +175,15 @@ func DrawEllipse(centerX, centerY int32, radiusH, radiusV float32, col color.RGB
 	C.DrawEllipse(ccenterX, ccenterY, cradiusH, cradiusV, *ccolor)
 }
 
+// DrawEllipseV - Draw ellipse (Vector version)
+func DrawEllipseV(center Vector2, radiusH, radiusV float32, col color.RGBA) {
+	ccenter := center.cptr()
+	cradiusH := (C.float)(radiusH)
+	cradiusV := (C.float)(radiusV)
+	ccolor := colorCptr(col)
+	C.DrawEllipseV(*ccenter, cradiusH, cradiusV, *ccolor)
+}
+
 // DrawEllipseLines - Draw ellipse outline
 func DrawEllipseLines(centerX, centerY int32, radiusH, radiusV float32, col color.RGBA) {
 	ccenterX := (C.int)(centerX)
@@ -184,6 +192,15 @@ func DrawEllipseLines(centerX, centerY int32, radiusH, radiusV float32, col colo
 	cradiusV := (C.float)(radiusV)
 	ccolor := colorCptr(col)
 	C.DrawEllipseLines(ccenterX, ccenterY, cradiusH, cradiusV, *ccolor)
+}
+
+// DrawEllipseLinesV - Draw ellipse outline (Vector version)
+func DrawEllipseLinesV(center Vector2, radiusH, radiusV float32, col color.RGBA) {
+	ccenter := center.cptr()
+	cradiusH := (C.float)(radiusH)
+	cradiusV := (C.float)(radiusV)
+	ccolor := colorCptr(col)
+	C.DrawEllipseLinesV(*ccenter, cradiusH, cradiusV, *ccolor)
 }
 
 // DrawRing - Draw ring
@@ -267,13 +284,13 @@ func DrawRectangleGradientH(posX, posY, width, height int32, left, right color.R
 }
 
 // DrawRectangleGradientEx - Draw a gradient-filled rectangle with custom vertex colors
-func DrawRectangleGradientEx(rec Rectangle, topLeft, bottomLeft, topRight, bottomRight color.RGBA) {
+func DrawRectangleGradientEx(rec Rectangle, topLeft, bottomLeft, bottomRight, topRight color.RGBA) {
 	crec := rec.cptr()
 	ctopLeft := colorCptr(topLeft)
 	cbottomLeft := colorCptr(bottomLeft)
 	ctopRight := colorCptr(topRight)
 	cbottomRight := colorCptr(bottomRight)
-	C.DrawRectangleGradientEx(*crec, *ctopLeft, *cbottomLeft, *ctopRight, *cbottomRight)
+	C.DrawRectangleGradientEx(*crec, *ctopLeft, *cbottomLeft, *cbottomRight, *ctopRight)
 }
 
 // DrawRectangleLines - Draw rectangle outline
@@ -322,7 +339,7 @@ func DrawRectangleRoundedLinesEx(rec Rectangle, roundness float32, segments int3
 	C.DrawRectangleRoundedLinesEx(*crec, croundness, csegments, clineThick, *ccolor)
 }
 
-// DrawTriangle - Draw a color-filled triangle
+// DrawTriangle - Draw a color-filled triangle (vertex in counter-clockwise order!)
 func DrawTriangle(v1, v2, v3 Vector2, col color.RGBA) {
 	cv1 := v1.cptr()
 	cv2 := v2.cptr()
@@ -331,7 +348,7 @@ func DrawTriangle(v1, v2, v3 Vector2, col color.RGBA) {
 	C.DrawTriangle(*cv1, *cv2, *cv3, *ccolor)
 }
 
-// DrawTriangleLines - Draw triangle outline
+// DrawTriangleLines - Draw triangle outline (vertex in counter-clockwise order!)
 func DrawTriangleLines(v1, v2, v3 Vector2, col color.RGBA) {
 	cv1 := v1.cptr()
 	cv2 := v2.cptr()
@@ -340,7 +357,7 @@ func DrawTriangleLines(v1, v2, v3 Vector2, col color.RGBA) {
 	C.DrawTriangleLines(*cv1, *cv2, *cv3, *ccolor)
 }
 
-// DrawTriangleFan - Draw a triangle fan defined by points
+// DrawTriangleFan - Draw a triangle fan defined by points (first vertex is the center)
 func DrawTriangleFan(points []Vector2, col color.RGBA) {
 	cpoints := (*C.Vector2)(unsafe.Pointer(&points[0]))
 	cpointsCount := (C.int)(len(points))
@@ -464,32 +481,32 @@ func DrawSplineSegmentCatmullRom(p1, p2, p3, p4 Vector2, thick float32, col colo
 }
 
 // DrawSplineSegmentBezierQuadratic - Draw spline segment: Quadratic Bezier, 2 points, 1 control point
-func DrawSplineSegmentBezierQuadratic(p1, p2, p3 Vector2, thick float32, col color.RGBA) {
+func DrawSplineSegmentBezierQuadratic(p1, c2, p3 Vector2, thick float32, col color.RGBA) {
 	cp1 := p1.cptr()
-	cp2 := p2.cptr()
+	cc2 := c2.cptr()
 	cp3 := p3.cptr()
 	cthick := (C.float)(thick)
 	ccolor := colorCptr(col)
-	C.DrawSplineSegmentBezierQuadratic(*cp1, *cp2, *cp3, cthick, *ccolor)
+	C.DrawSplineSegmentBezierQuadratic(*cp1, *cc2, *cp3, cthick, *ccolor)
 }
 
 // DrawSplineSegmentBezierCubic - Draw spline segment: Cubic Bezier, 2 points, 2 control points
-func DrawSplineSegmentBezierCubic(p1, p2, p3, p4 Vector2, thick float32, col color.RGBA) {
+func DrawSplineSegmentBezierCubic(p1, c2, c3, p4 Vector2, thick float32, col color.RGBA) {
 	cp1 := p1.cptr()
-	cp2 := p2.cptr()
-	cp3 := p3.cptr()
+	cc2 := c2.cptr()
+	cc3 := c3.cptr()
 	cp4 := p4.cptr()
 	cthick := (C.float)(thick)
 	ccolor := colorCptr(col)
-	C.DrawSplineSegmentBezierCubic(*cp1, *cp2, *cp3, *cp4, cthick, *ccolor)
+	C.DrawSplineSegmentBezierCubic(*cp1, *cc2, *cc3, *cp4, cthick, *ccolor)
 }
 
 // GetSplinePointLinear - Get (evaluate) spline point: Linear
-func GetSplinePointLinear(p1, p2 Vector2, t float32) Vector2 {
-	cp1 := p1.cptr()
-	cp2 := p2.cptr()
+func GetSplinePointLinear(startPos, endPos Vector2, t float32) Vector2 {
+	cstartPos := startPos.cptr()
+	cendPos := endPos.cptr()
 	ct := (C.float)(t)
-	ret := C.GetSplinePointLinear(*cp1, *cp2, ct)
+	ret := C.GetSplinePointLinear(*cstartPos, *cendPos, ct)
 	v := newVector2FromPointer(unsafe.Pointer(&ret))
 	return v
 }
@@ -519,24 +536,24 @@ func GetSplinePointCatmullRom(p1, p2, p3, p4 Vector2, t float32) Vector2 {
 }
 
 // GetSplinePointBezierQuad - Get (evaluate) spline point: Quadratic Bezier
-func GetSplinePointBezierQuad(p1, p2, p3 Vector2, t float32) Vector2 {
+func GetSplinePointBezierQuad(p1, c2, p3 Vector2, t float32) Vector2 {
 	cp1 := p1.cptr()
-	cp2 := p2.cptr()
+	cc2 := c2.cptr()
 	cp3 := p3.cptr()
 	ct := (C.float)(t)
-	ret := C.GetSplinePointBezierQuad(*cp1, *cp2, *cp3, ct)
+	ret := C.GetSplinePointBezierQuad(*cp1, *cc2, *cp3, ct)
 	v := newVector2FromPointer(unsafe.Pointer(&ret))
 	return v
 }
 
 // GetSplinePointBezierCubic - Get (evaluate) spline point: Cubic Bezier
-func GetSplinePointBezierCubic(p1, p2, p3, p4 Vector2, t float32) Vector2 {
+func GetSplinePointBezierCubic(p1, c2, c3, p4 Vector2, t float32) Vector2 {
 	cp1 := p1.cptr()
-	cp2 := p2.cptr()
-	cp3 := p3.cptr()
+	cc2 := c2.cptr()
+	cc3 := c3.cptr()
 	cp4 := p4.cptr()
 	ct := (C.float)(t)
-	ret := C.GetSplinePointBezierCubic(*cp1, *cp2, *cp3, *cp4, ct)
+	ret := C.GetSplinePointBezierCubic(*cp1, *cc2, *cc3, *cp4, ct)
 	v := newVector2FromPointer(unsafe.Pointer(&ret))
 	return v
 }
@@ -625,13 +642,13 @@ func CheckCollisionPointPoly(point Vector2, points []Vector2) bool {
 }
 
 // CheckCollisionLines - Check the collision between two lines defined by two points each, returns collision point by reference
-func CheckCollisionLines(startPos1, endPos1, startPos2, endPos2 Vector2, point *Vector2) bool {
+func CheckCollisionLines(startPos1, endPos1, startPos2, endPos2 Vector2, collisionPoint *Vector2) bool {
 	cstartPos1 := startPos1.cptr()
 	cendPos1 := endPos1.cptr()
 	cstartPos2 := startPos2.cptr()
 	cendPos2 := endPos2.cptr()
-	cpoint := point.cptr()
-	ret := C.CheckCollisionLines(*cstartPos1, *cendPos1, *cstartPos2, *cendPos2, cpoint)
+	ccollisionPoint := collisionPoint.cptr()
+	ret := C.CheckCollisionLines(*cstartPos1, *cendPos1, *cstartPos2, *cendPos2, ccollisionPoint)
 	v := bool(ret)
 	return v
 }

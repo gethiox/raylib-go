@@ -1,6 +1,8 @@
 /*******************************************************************************************
 *
-*   raylib [models] example - Load models M3D
+*   raylib [models] example - loading m3d
+*
+*   Example complexity rating: [★★☆☆] 2/4
 *
 *   Example originally created with raylib 4.5, last time updated with raylib 4.5
 *
@@ -13,92 +15,76 @@
 *   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
 *   BSD-like license that allows static linking with closed source software
 *
-*   Copyright (c) 2022-2024 bzt (@bztsrc)
+*   Copyright (c) 2022-2025 bzt (@bztsrc)
 *
 ********************************************************************************************/
+
 package main
 
 import (
+	"fmt"
+
 	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
-const (
-	screenWidth  = 800
-	screenHeight = 450
-)
-
+// ------------------------------------------------------------------------------------
+// Program main entry point
+// ------------------------------------------------------------------------------------
 func main() {
 	// Initialization
-	rl.InitWindow(screenWidth, screenHeight, "raylib [models] example - M3D model loading")
+	//--------------------------------------------------------------------------------------
+	const screenWidth, screenHeight = 800, 450
+
+	rl.InitWindow(screenWidth, screenHeight, "raylib [models] example - loading m3d")
+	defer rl.CloseWindow() // Close window and OpenGL context
 
 	// Define the camera to look into our 3d world
-	camera := rl.Camera{
-		Position:   rl.NewVector3(1.5, 1.5, 1.5),
-		Target:     rl.NewVector3(0.0, 0.4, 0.0),
-		Up:         rl.NewVector3(0.0, 1.0, 0.0),
-		Fovy:       45.0,
-		Projection: rl.CameraPerspective,
-	}
-
-	position := rl.NewVector3(0.0, 0.0, 0.0)
-
-	modelFileName := "cesium_man.m3d"
-	drawMesh := true
-	drawSkeleton := true
-	animPlaying := false // Store anim state, what to draw
+	var camera rl.Camera
+	camera.Position = rl.Vector3{X: 1.5, Y: 1.5, Z: 1.5} // Camera position
+	camera.Target.Y = 0.4                                // Camera looking at point
+	camera.Up.Y = 1                                      // Camera up vector (rotation towards target)
+	camera.Fovy = 45                                     // Camera field-of-view Y
+	camera.Projection = rl.CameraPerspective             // Camera projection type
 
 	// Load model
-	model := rl.LoadModel(modelFileName)
+	model := rl.LoadModel("cesium_man.m3d") // Load the animated model mesh and basic data
+	defer rl.UnloadModel(model)             // Unload model
+	var position rl.Vector3                 // Set model position
 
-	// Load animations
+	anims := rl.LoadModelAnimations("cesium_man.m3d") // Load animation data
+	defer rl.UnloadModelAnimations(anims)             // Unload model animations data
+	animCount := uint32(len(anims))
 
-	animFrameCounter := 0
-	animID := 0
-	anims := rl.LoadModelAnimations(modelFileName)
-	animsCount := int32(len(anims))
+	// Animation playing variables
+	var animIndex uint32         // Current animation playing
+	var animCurrentFrame float32 // Current animation frame (supporting interpolated frames)
 
-	rl.DisableCursor()
-	rl.SetTargetFPS(60)
+	rl.SetTargetFPS(60) // Set our game to run at 60 frames-per-second
+	//--------------------------------------------------------------------------------------
 
 	// Main game loop
-	for !rl.WindowShouldClose() {
+	for !rl.WindowShouldClose() { // Detect window close button or ESC key
 		// Update
-		rl.UpdateCamera(&camera, rl.CameraFirstPerson)
+		//----------------------------------------------------------------------------------
+		rl.UpdateCamera(&camera, rl.CameraOrbital)
 
-		if animsCount > 0 {
-			// Play animation when space bar is held down (or step one frame with N)
-			if rl.IsKeyDown(rl.KeySpace) || rl.IsKeyPressed(rl.KeyN) {
-				animFrameCounter++
-				if animFrameCounter >= int(anims[animID].FrameCount) {
-					animFrameCounter = 0
-				}
-				rl.UpdateModelAnimation(model, anims[animID], int32(animFrameCounter))
-				animPlaying = true
-			}
-
-			// Select animation by pressing C
-			if rl.IsKeyPressed(rl.KeyC) {
-				animFrameCounter = 0
-				animID++
-				if animID >= int(animsCount) {
-					animID = 0
-				}
-				rl.UpdateModelAnimation(model, anims[animID], 0)
-				animPlaying = true
-			}
+		// Select current animation
+		if rl.IsKeyPressed(rl.KeyRight) {
+			animIndex = (animIndex + 1) % animCount
+		} else if rl.IsKeyPressed(rl.KeyLeft) {
+			animIndex = (animIndex + animCount - 1) % animCount
 		}
 
-		// Toggle skeleton drawing
-		if rl.IsKeyPressed(rl.KeyB) {
-			drawSkeleton = !drawSkeleton
+		// Update model animation
+		animCurrentFrame += 1
+		if animCurrentFrame >= float32(anims[animIndex].KeyframeCount) {
+			animCurrentFrame = 0
 		}
-
-		// Toggle mesh drawing
-		if rl.IsKeyPressed(rl.KeyM) {
-			drawMesh = !drawMesh
-		}
+		rl.UpdateModelAnimation(model, anims[animIndex], animCurrentFrame)
+		//----------------------------------------------------------------------------------
 
 		// Draw
+		//----------------------------------------------------------------------------------
 		rl.BeginDrawing()
 
 		rl.ClearBackground(rl.RayWhite)
@@ -106,50 +92,32 @@ func main() {
 		rl.BeginMode3D(camera)
 
 		// Draw 3d model with texture
-		if drawMesh {
-			rl.DrawModel(model, position, 1.0, rl.White)
-		}
+		if !rl.IsKeyDown(rl.KeySpace) {
+			rl.DrawModel(model, position, 1, rl.White)
+		} else {
+			// Draw the animated skeleton
 
-		// Draw the animated skeleton
-		if drawSkeleton {
-			modelBones := model.GetBones()
-			modelPoses := model.GetBindPose()
-			anim := anims[animID]
-			animBones := anim.GetBones()
-			for bone := 0; bone < int(model.BoneCount)-1; bone++ {
-				if !animPlaying || animsCount == 0 {
-					// Display the bind-pose skeleton
-					rl.DrawCube(modelPoses[bone].Translation, 0.04, 0.04, 0.04, rl.Red)
-					if modelBones[bone].Parent >= 0 {
-						rl.DrawLine3D(modelPoses[bone].Translation, modelPoses[modelBones[bone].Parent].Translation, rl.Red)
-					}
-				} else {
-					// // Display the frame-pose skeleton
-					pos := anim.GetFramePose(animFrameCounter, bone).Translation
-					rl.DrawCube(pos, 0.05, 0.05, 0.05, rl.Red)
-					if animBones[bone].Parent >= 0 {
-						endPos := anim.GetFramePose(animFrameCounter, int(animBones[bone].Parent)).Translation
-						rl.DrawLine3D(pos, endPos, rl.Red)
-					}
+			// Loop to (boneCount - 1) because the last one is a special "no bone" bone,
+			// needed to workaround buggy models without a -1, a cube is always drawn at the origin
+			for i := 0; i < int(model.Skeleton.BoneCount)-1; i++ {
+				framePose := anims[animIndex].GetFramePose(int(animCurrentFrame), i).Translation
+				// Display the frame-pose skeleton
+				rl.DrawCube(framePose, 0.05, 0.05, 0.05, rl.Red)
+				if model.Skeleton.GetBones()[i].Parent >= 0 {
+					rl.DrawLine3D(framePose, anims[animIndex].GetFramePose(int(animCurrentFrame), int(model.Skeleton.GetBones()[i].Parent)).Translation, rl.Red)
 				}
 			}
 		}
 
-		rl.DrawGrid(10, 1.0)
+		rl.DrawGrid(10, 1)
 
 		rl.EndMode3D()
 
-		rl.DrawText("PRESS SPACE to PLAY MODEL ANIMATION", 10, screenHeight-80, 10, rl.Maroon)
-		rl.DrawText("PRESS N to STEP ONE ANIMATION FRAME", 10, screenHeight-60, 10, rl.DarkGray)
-		rl.DrawText("PRESS C to CYCLE THROUGH ANIMATIONS", 10, screenHeight-40, 10, rl.DarkGray)
-		rl.DrawText("PRESS M to toggle MESH, B to toggle SKELETON DRAWING", 10, screenHeight-20, 10, rl.DarkGray)
-		rl.DrawText("(c) CesiumMan model by KhronosGroup", screenWidth-210, screenHeight-20, 10, rl.Gray)
+		rl.DrawText(fmt.Sprintf("Current animation: %s", anims[animIndex].GetName()), 10, 10, 20, rl.LightGray)
+		rl.DrawText("Press SPACE to draw skeleton", 10, 40, 20, rl.Maroon)
+		rl.DrawText("(c) CesiumMan model by KhronosGroup", int32(rl.GetScreenWidth()-210), int32(rl.GetScreenHeight()-20), 10, rl.Gray)
 
 		rl.EndDrawing()
+		//----------------------------------------------------------------------------------
 	}
-
-	// De-Initialization
-	rl.UnloadModelAnimations(anims)
-	rl.UnloadModel(model)
-	rl.CloseWindow()
 }

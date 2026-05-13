@@ -9,9 +9,11 @@ Golang bindings for [raylib](http://www.raylib.com/), a simple and easy-to-use l
 
 raylib C source code is included and compiled together with bindings. Note that the first build can take a few minutes.
 
-It is also possible to use raylib-go without cgo (Windows only; see requirements below).
+It is also possible to use raylib-go without cgo (see requirements below).
 
 ### Requirements
+
+#### cgo
 
 ##### Ubuntu
 
@@ -27,19 +29,10 @@ On macOS, you need Xcode or Command Line Tools for Xcode (if you have `brew` ins
 
 ##### Windows
 
-###### cgo
-
 On Windows you need C compiler, like [Mingw-w64](https://mingw-w64.org) or [TDM-GCC](http://tdm-gcc.tdragon.net/).
 You can also build binary in [MSYS2](https://msys2.github.io/) shell.
 
 To remove console window, build with `-ldflags "-H=windowsgui"`.
-
-###### purego (without cgo, i.e. CGO_ENABLED=0)
-
-Download the raylib.dll from the assets on the [releases page](https://github.com/raysan5/raylib/releases). It is contained in the `raylib-*_win64_msvc*.zip`.
-Put the raylib.dll into the root folder of your project or copy it into `C:\Windows\System32` for a system-wide installation.
-
-It is also possible to build the DLL yourself. You can find more info at [raylib's wiki](https://github.com/raysan5/raylib/wiki/Working-on-Windows).
 
 ##### Android
 
@@ -48,6 +41,12 @@ It is also possible to build the DLL yourself. You can find more info at [raylib
 ##### Wasm
 
 For web bindings, refer to [Raylib-Go-Wasm](https://github.com/BrownNPC/Raylib-Go-Wasm); it should be largely compatible with this repository.
+
+#### purego (without cgo, i.e. CGO_ENABLED=0)
+
+You can use raylib-go on `Linux`, `macOS`, `Windows` and `FreeBSD` without the need of [cgo](https://go.dev/blog/cgo). 32-bit is not supported.
+
+The shared libraries (.dll, .so, .dylib) of raylib are already embedded for Linux arm64/amd64, macOS arm64/amd64 and Windows arm64/amd64. The build tag `raylib_no_embed` or the environment variable `RAYLIB_NO_EMBED=1` can disable this feature.
 
 
 ### Installation
@@ -68,6 +67,7 @@ For web bindings, refer to [Raylib-Go-Wasm](https://github.com/BrownNPC/Raylib-G
 * `es3` - experimental support for OpenGL ES 3.0
 * `x11` - force X11 compatibility mode on Wayland (PLATFORM_DESKTOP/GLFW)
 * `wayland` - force Wayland only mode (PLATFORM_DESKTOP/GLFW)
+* `raylib_no_embed` - doesn't embed the pre-build shared libraries (only applies to purego version)
 
 ### Documentation
 
@@ -99,7 +99,7 @@ func main() {
 
 Check more [examples](https://github.com/gen2brain/raylib-go/tree/master/examples) organized by raylib modules.
 
-### Cross-compile (Linux)
+### Cross-compile (on Linux with cgo)
 
 To cross-compile for Windows install [MinGW](https://www.mingw-w64.org/) toolchain.
 

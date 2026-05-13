@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gen2brain/raylib-go/raylib"
+	rl "github.com/gen2brain/raylib-go/raylib"
 )
 
 func main() {
@@ -27,7 +27,7 @@ func main() {
 		rl.DrawText("USING DEFAULT SHADER", 20, 40, 10, rl.Red)
 
 		rl.DrawCircle(80, 120, 35, rl.DarkBlue)
-		rl.DrawCircleGradient(80, 220, 60, rl.Green, rl.SkyBlue)
+		rl.DrawCircleGradient(rl.Vector2{X: 80, Y: 220}, 60, rl.Green, rl.SkyBlue)
 		rl.DrawCircleLines(80, 340, 80, rl.DarkBlue)
 
 		// Activate our custom shader to be applied on next shapes/textures drawings

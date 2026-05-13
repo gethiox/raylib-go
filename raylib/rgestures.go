@@ -7,9 +7,8 @@ import "C"
 import "unsafe"
 
 // SetGesturesEnabled - Enable a set of gestures using flags
-func SetGesturesEnabled(gestureFlags uint32) {
-	cgestureFlags := (C.uint)(gestureFlags)
-	C.SetGesturesEnabled(cgestureFlags)
+func SetGesturesEnabled(flags uint32) {
+	C.SetGesturesEnabled((C.uint)(flags))
 }
 
 // IsGestureDetected - Check if a gesture have been detected
