@@ -150,6 +150,20 @@ typedef struct {
     LARGE_INTEGER timerFrequency;
 
     char *clipboardText;
+
+    // Windows runs its own message loop while a window is moved or resized or a menu is open,
+    // and only returns when the mouse button is released. Messages are pumped on a second fiber
+    // so that loop can be left in the middle, to let the application run frames meanwhile
+    LPVOID mainFiber;               // Fiber of the application, the thread that created the window
+    LPVOID messageFiber;            // Fiber that pumps the messages, NULL if not available
+    bool threadConverted;           // Thread was converted to a fiber by the platform
+    int modalDepth;                 // Number of nested calls that can run a modal message loop
+    bool messagePending;            // Message waiting to be processed on the main fiber
+    HWND messageHwnd;               // Message waiting: window
+    UINT messageId;                 // Message waiting: identifier
+    WPARAM messageWparam;           // Message waiting: first parameter
+    LPARAM messageLparam;           // Message waiting: second parameter
+    LRESULT messageResult;          // Result of the last message processed on the main fiber
 } PlatformData;
 
 // Define WGL function pointer types (no wglext.h needed)
@@ -1092,6 +1106,11 @@ void ClosePlatform(void);       // Close platform
 
 // Win32 process messages management function
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+static LRESULT WindowMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam); // Process a window message
+static void InitMessageFiber(void);     // Create the fiber that pumps the messages
+static void CloseMessageFiber(void);    // Delete the fiber that pumps the messages
+static void PumpMessages(void);         // Process pending messages, returns while a modal loop is running
+static VOID CALLBACK MessageFiberProc(LPVOID param);
 
 // Win32: Handle inputs functions
 static void HandleKey(WPARAM wparam, LPARAM lparam, char state);
@@ -2022,12 +2041,7 @@ void PollInputEvents(void)
     }
 
     // Process windows messages
-    MSG msg = { 0 };
-    while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
-    {
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
+    PumpMessages();
 
     if ((platform.previousRenderWidth != CORE.Window.render.width) || (platform.previousRenderHeight != CORE.Window.render.height))
     {
@@ -2307,6 +2321,8 @@ int InitPlatform(void)
     if (!windowClass.hIcon) windowClass.hIcon = LoadImageW(NULL, (LPCWSTR)IDI_APPLICATION, IMAGE_ICON, 0, 0, LR_DEFAULTSIZE | LR_SHARED);
 
     // Register window class
+    InitMessageFiber();
+
     result = (int)RegisterClassExW(&windowClass);
     if (result == 0) TRACELOG(LOG_ERROR, "WIN32: Failed to register window class [ERROR: %lu]", GetLastError());
 
@@ -2514,6 +2530,8 @@ void ClosePlatform(void)
         platform.hwnd = NULL;
     }
 
+    CloseMessageFiber();
+
     // Clear clipboard
     if (platform.clipboardText != NULL)
     {
@@ -2562,9 +2580,158 @@ void ClosePlatform(void)
 #endif
 }
 
+#define MODAL_TIMER_ID      0x7261796c      // Timer that keeps frames running during a modal message loop
+#define MODAL_TIMER_PERIOD           1      // Milliseconds, the system rounds it up to its minimum (10 ms)
+
+// Create the fiber that pumps the messages
+// NOTE: Must be called from the thread that creates the window and polls its events
+static void InitMessageFiber(void)
+{
+    platform.messageFiber = NULL;
+    platform.threadConverted = false;
+    platform.modalDepth = 0;
+    platform.messagePending = false;
+
+    if (IsThreadAFiber()) platform.mainFiber = GetCurrentFiber();
+    else
+    {
+        platform.mainFiber = ConvertThreadToFiber(NULL);
+        platform.threadConverted = (platform.mainFiber != NULL);
+    }
+
+    if (platform.mainFiber != NULL) platform.messageFiber = CreateFiber(0, MessageFiberProc, NULL);
+
+    if (platform.messageFiber == NULL) TRACELOG(LOG_WARNING, "WIN32: Failed to create the message fiber, moving or resizing the window will pause the application [ERROR: %u]", GetLastError());
+}
+
+// Delete the fiber that pumps the messages
+static void CloseMessageFiber(void)
+{
+    // NOTE: The fiber can be in the middle of a modal loop here, its stack is just released
+    if (platform.messageFiber != NULL) DeleteFiber(platform.messageFiber);
+    if (platform.threadConverted) ConvertFiberToThread();
+
+    platform.messageFiber = NULL;
+    platform.mainFiber = NULL;
+    platform.threadConverted = false;
+    platform.modalDepth = 0;
+    platform.messagePending = false;
+}
+
+// Message fiber: dispatch the pending messages, then give control back to the application
+static VOID CALLBACK MessageFiberProc(LPVOID param)
+{
+    (void)param;
+
+    for (;;)
+    {
+        MSG msg = { 0 };
+        while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+
+        SwitchToFiber(platform.mainFiber);
+    }
+}
+
+// Process pending messages
+// NOTE: Returns when no messages are left or, while Windows is running a modal message loop
+// (window being moved or resized, menu open), every time its timer ticks or the window size changes
+static void PumpMessages(void)
+{
+    if (platform.messageFiber == NULL)
+    {
+        MSG msg = { 0 };
+        while (PeekMessageW(&msg, NULL, 0, 0, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+
+        return;
+    }
+
+    for (;;)
+    {
+        SwitchToFiber(platform.messageFiber);
+
+        // The message fiber comes back either with a message to be processed here or to let a frame run
+        if (!platform.messagePending) break;
+
+        platform.messagePending = false;
+        HWND hwnd = platform.messageHwnd;
+        UINT msg = platform.messageId;
+        WPARAM wparam = platform.messageWparam;
+        LPARAM lparam = platform.messageLparam;
+        LRESULT result = WindowMessage(hwnd, msg, wparam, lparam);
+        platform.messageResult = result;
+
+        // Window resized by the user: draw a frame with the new size before the modal loop goes on,
+        // so the window never shows a client area that was not drawn. The message fiber stays
+        // inside the WM_SIZE message until the next call to PollInputEvents()
+        if ((platform.modalDepth > 0) && (msg == WM_SIZE) && (hwnd == platform.hwnd) && CORE.Window.resizedLastFrame) break;
+    }
+}
+
 // Window procedure, message processing callback
-// NOTE: All window event messages are processed here
+// NOTE: Messages dispatched by the message fiber are processed on the main fiber by WindowMessage(),
+// so that the fiber stack only holds system calls: nothing of the application or the library runs on it,
+// neither do the callbacks they can call (TraceLog callback); that matters to language runtimes that
+// know the stack of their threads. Only the calls that can start a modal loop are made from the fiber
 static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
+{
+    if ((platform.messageFiber == NULL) || (GetCurrentFiber() != platform.messageFiber)) return WindowMessage(hwnd, msg, wparam, lparam);
+
+    if ((msg == WM_TIMER) && (wparam == MODAL_TIMER_ID) && (hwnd == platform.hwnd))
+    {
+        // In the middle of a modal loop: let the application run a frame,
+        // execution continues here on the next call to PollInputEvents()
+        SwitchToFiber(platform.mainFiber);
+        return 0;
+    }
+
+    bool modal = false;
+    switch (msg)
+    {
+        case WM_SYSCOMMAND: modal = ((wparam & 0xFFF0) != SC_KEYMENU); break; // Move, size and window menu commands
+        case WM_NCLBUTTONDOWN:  // Title bar and borders pressed, moves or resizes the window
+        case WM_NCRBUTTONDOWN:
+        case WM_NCRBUTTONUP:    // Title bar clicked with the right button, opens the window menu
+        case WM_CONTEXTMENU: modal = true; break;
+        default: break;
+    }
+
+    if (modal)
+    {
+        // Default processing of these messages does not return until the user finishes,
+        // messages sent meanwhile get here again; a timer wakes the application up
+        if ((platform.modalDepth == 0) && (platform.hwnd != NULL)) SetTimer(platform.hwnd, MODAL_TIMER_ID, MODAL_TIMER_PERIOD, NULL);
+        platform.modalDepth++;
+
+        LRESULT result = DefWindowProcW(hwnd, msg, wparam, lparam);
+
+        platform.modalDepth--;
+        if ((platform.modalDepth == 0) && (platform.hwnd != NULL)) KillTimer(platform.hwnd, MODAL_TIMER_ID);
+
+        return result;
+    }
+
+    // Process the message on the main fiber, PumpMessages() is waiting for it
+    platform.messageHwnd = hwnd;
+    platform.messageId = msg;
+    platform.messageWparam = wparam;
+    platform.messageLparam = lparam;
+    platform.messagePending = true;
+    SwitchToFiber(platform.mainFiber);
+
+    return platform.messageResult;
+}
+
+// Process a window message
+// NOTE: All window event messages are processed here
+static LRESULT WindowMessage(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
     LRESULT result = 0;
 
