@@ -2791,7 +2791,11 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
             GetCursorPos(&now);
             int dx = now.x - GET_X_LPARAM(platform.captionPoint);
             int dy = now.y - GET_Y_LPARAM(platform.captionPoint);
-            if ((abs(dx) < GetSystemMetrics(SM_CXDRAG)) && (abs(dy) < GetSystemMetrics(SM_CYDRAG))) return 0;
+            // The system makes the same check again when it is told to move the window: it waits, half
+            // a second at most, for the mouse to leave a rectangle of the drag size around the point
+            // of the press. The mouse has to be clearly outside of it here, edges included, or a slow
+            // move over the edge would be waited for after all
+            if ((abs(dx) <= GetSystemMetrics(SM_CXDRAG)) && (abs(dy) <= GetSystemMetrics(SM_CYDRAG))) return 0;
 
             // Moved: what the default processing of the press would have asked for
             platform.captionHeld = false;
@@ -2799,6 +2803,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
             msg = WM_SYSCOMMAND;
             wparam = SC_MOVE | HTCAPTION;
             lparam = platform.captionPoint;
+
+            // The system looks at where the mouse is when the next mouse message comes, and a mouse
+            // that stopped right here would send none: a move by nothing makes one
+            INPUT nudge = { 0 };
+            nudge.type = INPUT_MOUSE;
+            nudge.mi.dwFlags = MOUSEEVENTF_MOVE;
+            SendInput(1, &nudge, sizeof(nudge));
         }
         else if (msg == WM_LBUTTONUP)
         {
