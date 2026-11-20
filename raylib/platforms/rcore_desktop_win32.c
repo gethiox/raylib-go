@@ -67,6 +67,7 @@
 
 #include <windowsx.h>
 #include <imm.h>            // Required for: COMPOSITIONFORM, CANDIDATEFORM (functions loaded at runtime)
+#include <mmsystem.h>       // Required for: timeSetEvent(), timeKillEvent()
 #include <shellapi.h>       // Required for: DragAcceptFiles(), DragQueryFileW(), DragFinish()
 
 // Avoid including shellscalingapi.h by defining these two enums directly
@@ -158,6 +159,9 @@ typedef struct {
     LPVOID messageFiber;            // Fiber that pumps the messages, NULL if not available
     bool threadConverted;           // Thread was converted to a fiber by the platform
     int modalDepth;                 // Number of nested calls that can run a modal message loop
+    UINT modalTicks;                // Multimedia timer that posts the next tick of a modal loop, 0 if none is set
+    bool frameRan;                  // The application ran a frame while a message waited for its result
+    double frameLet;                // When the application was last let run a frame from a modal loop
     bool messagePending;            // Message waiting to be processed on the main fiber
     HWND messageHwnd;               // Message waiting: window
     UINT messageId;                 // Message waiting: identifier
@@ -2582,6 +2586,7 @@ void ClosePlatform(void)
 
 #define MODAL_TIMER_ID      0x7261796c      // Timer that keeps frames running during a modal message loop
 #define MODAL_TIMER_PERIOD           1      // Milliseconds, the system rounds it up to its minimum (10 ms)
+#define MODAL_TICK_MESSAGE  (WM_APP + 0x1D1) // Posted by the multimedia timer when a frame is due during a modal message loop
 
 // Create the fiber that pumps the messages
 // NOTE: Must be called from the thread that creates the window and polls its events
@@ -2590,6 +2595,8 @@ static void InitMessageFiber(void)
     platform.messageFiber = NULL;
     platform.threadConverted = false;
     platform.modalDepth = 0;
+    platform.modalTicks = 0;
+    platform.frameRan = false;
     platform.messagePending = false;
 
     if (IsThreadAFiber()) platform.mainFiber = GetCurrentFiber();
@@ -2608,6 +2615,8 @@ static void InitMessageFiber(void)
 static void CloseMessageFiber(void)
 {
     // NOTE: The fiber can be in the middle of a modal loop here, its stack is just released
+    if (platform.modalTicks != 0) timeKillEvent(platform.modalTicks);
+    platform.modalTicks = 0;
     if (platform.messageFiber != NULL) DeleteFiber(platform.messageFiber);
     if (platform.threadConverted) ConvertFiberToThread();
 
@@ -2671,8 +2680,74 @@ static void PumpMessages(void)
         // Window resized by the user: draw a frame with the new size before the modal loop goes on,
         // so the window never shows a client area that was not drawn. The message fiber stays
         // inside the WM_SIZE message until the next call to PollInputEvents()
-        if ((platform.modalDepth > 0) && (msg == WM_SIZE) && (hwnd == platform.hwnd) && CORE.Window.resizedLastFrame) break;
+        if ((platform.modalDepth > 0) && (msg == WM_SIZE) && (hwnd == platform.hwnd) && CORE.Window.resizedLastFrame)
+        {
+            platform.frameLet = GetTime();
+            platform.frameRan = true;
+            break;
+        }
     }
+}
+
+// Multimedia timer callback: post the tick to the window
+// NOTE: It runs on a thread of the system, a message is all it may touch
+static void CALLBACK ModalTick(UINT id, UINT msg, DWORD_PTR user, DWORD_PTR reserved1, DWORD_PTR reserved2)
+{
+    (void)id; (void)msg; (void)reserved1; (void)reserved2;
+
+    PostMessageW((HWND)user, MODAL_TICK_MESSAGE, 0, 0);
+}
+
+// Arrange for the message fiber to be woken up when the next frame of the application is due
+// NOTE: One tick for each frame, and no more: a posted message is retrieved before any input,
+// and a steady stream of them would keep the modal loop from seeing the mouse.
+// A window timer cannot be set finer than 10 ms, too coarse to keep a frame rate, so the tick
+// comes from a multimedia timer, set to the millisecond; the window timer is the fallback
+static void ArmModalTick(void)
+{
+    double wait = 0.0;
+    if (CORE.Time.target > 0.0) wait = CORE.Time.target - (GetTime() - platform.frameLet);
+    UINT delay = (wait > 0.001)? (UINT)(wait*1000.0) : 1;
+
+    if (platform.modalTicks != 0) timeKillEvent(platform.modalTicks);
+    platform.modalTicks = timeSetEvent(delay, 0, ModalTick, (DWORD_PTR)platform.hwnd, TIME_ONESHOT | TIME_CALLBACK_FUNCTION | TIME_KILL_SYNCHRONOUS);
+    if (platform.modalTicks == 0) SetTimer(platform.hwnd, MODAL_TIMER_ID, delay, NULL);
+}
+
+static void StartModalTicks(void)
+{
+    platform.frameLet = GetTime();
+    platform.modalTicks = 0;
+    ArmModalTick();
+}
+
+static void StopModalTicks(void)
+{
+    if (platform.modalTicks != 0) timeKillEvent(platform.modalTicks);
+    platform.modalTicks = 0;
+    KillTimer(platform.hwnd, MODAL_TIMER_ID);
+}
+
+// Let the application run a frame from the middle of a modal loop
+// NOTE: The application paces its frames by waiting at the end of each, on this same thread:
+// a wait that would keep the modal loop from following the mouse, and the window from moving.
+// So the application gets its frame when the time for one has come, which is when the tick
+// arrives. The time it then finds it has spent polling events is that of a whole frame,
+// and it does not wait at all: the waiting is done by the modal loop instead, which stays
+// as responsive as it is without anybody drawing
+static void LetFrameRun(void)
+{
+    double now = GetTime();
+    double target = CORE.Time.target;
+
+    // Keep the rhythm, a tick comes a little late; unless the rhythm was lost
+    if ((target > 0.0) && ((now - platform.frameLet) < 2.0*target)) platform.frameLet += target;
+    else platform.frameLet = now;
+
+    // Execution continues here on the next call to PollInputEvents()
+    SwitchToFiber(platform.mainFiber);
+
+    if (platform.modalDepth > 0) ArmModalTick();
 }
 
 // Window procedure, message processing callback
@@ -2684,11 +2759,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
 {
     if ((platform.messageFiber == NULL) || (GetCurrentFiber() != platform.messageFiber)) return WindowMessage(hwnd, msg, wparam, lparam);
 
-    if ((msg == WM_TIMER) && (wparam == MODAL_TIMER_ID) && (hwnd == platform.hwnd))
+    if ((hwnd == platform.hwnd) && ((msg == MODAL_TICK_MESSAGE) || ((msg == WM_TIMER) && (wparam == MODAL_TIMER_ID))))
     {
-        // In the middle of a modal loop: let the application run a frame,
-        // execution continues here on the next call to PollInputEvents()
-        SwitchToFiber(platform.mainFiber);
+        // In the middle of a modal loop, and a frame is due
+        if (msg == WM_TIMER) KillTimer(hwnd, MODAL_TIMER_ID);
+        else platform.modalTicks = 0; // A timer that fired is gone
+        if (platform.modalDepth > 0) LetFrameRun();
         return 0;
     }
 
@@ -2706,14 +2782,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
     if (modal)
     {
         // Default processing of these messages does not return until the user finishes,
-        // messages sent meanwhile get here again; a timer wakes the application up
-        if ((platform.modalDepth == 0) && (platform.hwnd != NULL)) SetTimer(platform.hwnd, MODAL_TIMER_ID, MODAL_TIMER_PERIOD, NULL);
+        // messages sent meanwhile get here again; ticks wake the application up for its frames
+        if ((platform.modalDepth == 0) && (platform.hwnd != NULL)) StartModalTicks();
         platform.modalDepth++;
 
         LRESULT result = DefWindowProcW(hwnd, msg, wparam, lparam);
 
         platform.modalDepth--;
-        if ((platform.modalDepth == 0) && (platform.hwnd != NULL)) KillTimer(platform.hwnd, MODAL_TIMER_ID);
+        if ((platform.modalDepth == 0) && (platform.hwnd != NULL)) StopModalTicks();
 
         return result;
     }
@@ -2725,6 +2801,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
     platform.messageLparam = lparam;
     platform.messagePending = true;
     SwitchToFiber(platform.mainFiber);
+
+    // The application may have run a frame meanwhile, for a new size of the window:
+    // the next one is due a frame later
+    if (platform.frameRan)
+    {
+        platform.frameRan = false;
+        if (platform.modalDepth > 0) ArmModalTick();
+    }
 
     return platform.messageResult;
 }
