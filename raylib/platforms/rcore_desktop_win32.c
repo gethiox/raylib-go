@@ -161,6 +161,8 @@ typedef struct {
     int modalDepth;                 // Number of nested calls that can run a modal message loop
     UINT modalTicks;                // Multimedia timer that posts the next tick of a modal loop, 0 if none is set
     bool frameRan;                  // The application ran a frame while a message waited for its result
+    bool captionHeld;               // The title bar is pressed and the mouse has not moved yet
+    LPARAM captionPoint;            // Where the title bar was pressed, screen coordinates
     double frameLet;                // When the application was last let run a frame from a modal loop
     bool messagePending;            // Message waiting to be processed on the main fiber
     HWND messageHwnd;               // Message waiting: window
@@ -2597,6 +2599,7 @@ static void InitMessageFiber(void)
     platform.modalDepth = 0;
     platform.modalTicks = 0;
     platform.frameRan = false;
+    platform.captionHeld = false;
     platform.messagePending = false;
 
     if (IsThreadAFiber()) platform.mainFiber = GetCurrentFiber();
@@ -2767,6 +2770,47 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lpara
         else platform.modalTicks = 0; // A timer that fired is gone
         if (platform.modalDepth > 0) LetFrameRun();
         return 0;
+    }
+
+    // The title bar pressed: the default processing waits, for about half a second and without
+    // dispatching anything, to see whether the mouse moves, before it starts moving the window.
+    // Nothing can be drawn in that wait. So the press is kept here instead, with the mouse captured,
+    // and the window is only told to move once the mouse has moved: then it starts at once
+    if ((msg == WM_NCLBUTTONDOWN) && (wparam == HTCAPTION) && (hwnd == platform.hwnd))
+    {
+        platform.captionHeld = true;
+        platform.captionPoint = lparam;
+        SetCapture(hwnd);
+        return 0;
+    }
+    if (platform.captionHeld && (hwnd == platform.hwnd))
+    {
+        if (msg == WM_MOUSEMOVE)
+        {
+            POINT now = { 0 };
+            GetCursorPos(&now);
+            int dx = now.x - GET_X_LPARAM(platform.captionPoint);
+            int dy = now.y - GET_Y_LPARAM(platform.captionPoint);
+            if ((abs(dx) < GetSystemMetrics(SM_CXDRAG)) && (abs(dy) < GetSystemMetrics(SM_CYDRAG))) return 0;
+
+            // Moved: what the default processing of the press would have asked for
+            platform.captionHeld = false;
+            ReleaseCapture();
+            msg = WM_SYSCOMMAND;
+            wparam = SC_MOVE | HTCAPTION;
+            lparam = platform.captionPoint;
+        }
+        else if (msg == WM_LBUTTONUP)
+        {
+            // A click on the title bar, which does nothing
+            platform.captionHeld = false;
+            ReleaseCapture();
+            return 0;
+        }
+        else if (msg == WM_CAPTURECHANGED)
+        {
+            if ((HWND)lparam != hwnd) platform.captionHeld = false;
+        }
     }
 
     bool modal = false;
