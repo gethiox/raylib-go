@@ -2609,6 +2609,7 @@ static void InitMessageFiber(void)
     if (platform.mainFiber != NULL) platform.messageFiber = CreateFiber(0, MessageFiberProc, NULL);
 
     if (platform.messageFiber == NULL) TRACELOG(LOG_WARNING, "WIN32: Failed to create the message fiber, moving or resizing the window will pause the application [ERROR: %u]", GetLastError());
+    else TRACELOG(LOG_INFO, "WIN32: Messages are pumped on a fiber, frames keep running while the window is moved or resized");
 }
 
 // Delete the fiber that pumps the messages
